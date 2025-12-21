@@ -10,7 +10,7 @@ export interface User {
   email: string;
   role: Role;
   isActive: boolean;
-  employee?: Employee;
+  employee?: Employee | null;
 }
 
 export interface Employee {
