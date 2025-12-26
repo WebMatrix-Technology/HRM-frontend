@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Employee, employeeService } from '@/services/employee.service';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 import {
   Users,
   Plus,
@@ -18,10 +20,12 @@ import {
   Edit,
   MoreVertical,
   Download,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EmployeesPage() {
+  const { user: currentUser } = useAuthStore();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -30,6 +34,7 @@ export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const isAdmin = currentUser?.role === Role.ADMIN;
 
   useEffect(() => {
     loadEmployees();
@@ -58,6 +63,21 @@ export default function EmployeesPage() {
       setDepartments(data);
     } catch (error) {
       console.error('Failed to load departments:', error);
+    }
+  };
+
+  const handleDelete = async (employeeId: string, employeeName: string) => {
+    if (!confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await employeeService.deleteEmployee(employeeId);
+      loadEmployees();
+    } catch (error: any) {
+      console.error('Failed to delete employee:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to delete employee. Please try again.';
+      alert(errorMessage);
     }
   };
 
@@ -318,7 +338,7 @@ export default function EmployeesPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className={`grid gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 ${isAdmin && employee.user?.role !== 'ADMIN' ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <Link
                     href={`/employees/${employee.id}`}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
@@ -333,6 +353,16 @@ export default function EmployeesPage() {
                     <Edit className="w-4 h-4" />
                     Edit
                   </Link>
+                  {isAdmin && employee.user?.role !== 'ADMIN' && (
+                    <button
+                      onClick={() => handleDelete(employee.id, `${employee.firstName} ${employee.lastName}`)}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                      title="Delete Employee"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}
