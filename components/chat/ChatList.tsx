@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MessageCircle, Users, Plus, CheckCircle2 } from 'lucide-react';
-import { Conversation } from '@/services/chat.service';
+import { Conversation, ChatMessage } from '@/services/chat.service';
 import { chatService } from '@/services/chat.service';
+import { socketService } from '@/services/socket.service';
 
 interface ChatListProps {
   onSelectConversation: (employeeId: string, employeeName: string) => void;
@@ -19,6 +20,20 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
 
   useEffect(() => {
     loadConversations();
+
+    // Listen for new messages to refresh conversations
+    const handleNewMessage = (message: ChatMessage) => {
+      // Refresh conversations when a new message is received
+      loadConversations();
+    };
+
+    socketService.onReceiveMessage(handleNewMessage);
+    socketService.onMessageSent(handleNewMessage);
+
+    return () => {
+      // Cleanup: Remove listeners if component unmounts
+      // Note: socketService doesn't have removeListener, so we'll keep it simple
+    };
   }, []);
 
   useEffect(() => {

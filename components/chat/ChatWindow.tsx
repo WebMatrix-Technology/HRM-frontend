@@ -38,8 +38,16 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         setMessages((prev) => {
           // Avoid duplicates
           if (prev.some((m) => m.id === message.id)) return prev;
-          return [...prev, message];
+          // Insert message in correct position based on createdAt
+          const newMessages = [...prev, message].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          return newMessages;
         });
+        // Mark message as read if it's from the receiver
+        if (message.senderId === receiverId && !message.isRead) {
+          socketService.markMessageAsRead(message.id);
+        }
       }
     });
 
@@ -47,7 +55,11 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       if (message.receiverId === receiverId) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === message.id)) return prev;
-          return [...prev, message];
+          // Insert message in correct position based on createdAt
+          const newMessages = [...prev, message].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          return newMessages;
         });
       }
     });
@@ -58,8 +70,13 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       }
     });
 
+    socketService.onError((error) => {
+      console.error('Socket error:', error);
+    });
+
     return () => {
-      socketService.disconnect();
+      // Don't disconnect socket here as it might be used by other components
+      // Just clean up event listeners if needed
     };
   }, [receiverId, employee]);
 
@@ -71,7 +88,19 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     try {
       setLoading(true);
       const data = await chatService.getMessages(receiverId);
-      setMessages(data);
+      // Sort messages by createdAt to ensure correct order
+      const sortedMessages = [...data].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      setMessages(sortedMessages);
+      
+      // Mark unread messages as read
+      const unreadMessages = sortedMessages.filter(
+        (msg) => msg.senderId === receiverId && !msg.isRead
+      );
+      unreadMessages.forEach((msg) => {
+        socketService.markMessageAsRead(msg.id);
+      });
     } catch (error) {
       console.error('Failed to load messages:', error);
     } finally {
@@ -213,7 +242,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
                   <div className={`flex items-end gap-2 max-w-[70%] ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
                     {!isOwnMessage && !isConsecutive && (
                       <div className="w-8 h-8 rounded-full bg-dark-surface flex items-center justify-center text-xs font-bold text-cyan-400 flex-shrink-0">
-                        {message.sender.firstName[0]}{message.sender.lastName[0]}
+                        {message.sender?.firstName?.[0] || ''}{message.sender?.lastName?.[0] || ''}
                       </div>
                     )}
                     {!isOwnMessage && isConsecutive && <div className="w-8"></div>}
@@ -226,7 +255,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
                         }
                       `}
                     >
-                      {!isOwnMessage && !isConsecutive && (
+                      {!isOwnMessage && !isConsecutive && message.sender && (
                         <p className="text-xs font-semibold mb-1 opacity-80">
                           {message.sender.firstName} {message.sender.lastName}
                         </p>

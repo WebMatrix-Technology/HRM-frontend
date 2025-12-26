@@ -5,15 +5,47 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000'
 
 class SocketService {
   private socket: Socket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
   connect(token: string): Socket {
     if (this.socket?.connected) {
       return this.socket;
     }
 
+    // Disconnect existing socket if any
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+
     this.socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: this.maxReconnectAttempts,
+    });
+
+    this.socket.on('connect', () => {
+      console.log('Socket connected');
+      this.reconnectAttempts = 0;
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnected the socket, need to reconnect manually
+        this.socket?.connect();
+      }
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      this.reconnectAttempts++;
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        console.error('Max reconnection attempts reached');
+      }
     });
 
     return this.socket;
@@ -23,6 +55,7 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.reconnectAttempts = 0;
     }
   }
 
