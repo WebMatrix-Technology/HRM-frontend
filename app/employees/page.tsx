@@ -338,7 +338,13 @@ export default function EmployeesPage() {
                   )}
                 </div>
 
-                <div className={`grid gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 ${isAdmin && employee.user?.role !== 'ADMIN' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                <div className={`grid gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 ${
+                  employee.user?.role === 'ADMIN' 
+                    ? 'grid-cols-1' 
+                    : isAdmin && employee.user?.role !== 'ADMIN' 
+                      ? 'grid-cols-3' 
+                      : 'grid-cols-2'
+                }`}>
                   <Link
                     href={`/employees/${employee.id}`}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
@@ -346,13 +352,15 @@ export default function EmployeesPage() {
                     <Eye className="w-4 h-4" />
                     View
                   </Link>
-                  <Link
-                    href={`/employees/${employee.id}/edit`}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit
-                  </Link>
+                  {employee.user?.role !== 'ADMIN' && (
+                    <Link
+                      href={`/employees/${employee.id}/edit`}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </Link>
+                  )}
                   {isAdmin && employee.user?.role !== 'ADMIN' && (
                     <button
                       onClick={() => handleDelete(employee.id, `${employee.firstName} ${employee.lastName}`)}

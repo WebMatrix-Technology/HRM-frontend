@@ -60,6 +60,15 @@ export default function EditEmployeePage() {
       setLoadingEmployee(true);
       const employee = await employeeService.getEmployeeById(employeeId);
       
+      // Check if employee is an admin - admins cannot be edited
+      if (employee.user?.role === 'ADMIN') {
+        setError('Admin users cannot be edited');
+        setTimeout(() => {
+          router.push('/employees');
+        }, 2000);
+        return;
+      }
+      
       // Format dateOfBirth for input field (YYYY-MM-DD)
       const dateOfBirth = employee.dateOfBirth 
         ? new Date(employee.dateOfBirth).toISOString().split('T')[0]
