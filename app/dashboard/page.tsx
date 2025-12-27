@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { dashboardService, DashboardStats } from '@/services/dashboard.service';
 
 const dashboardCards = [
   {
@@ -95,16 +96,18 @@ const dashboardCards = [
   },
 ];
 
-const stats = [
-  { label: 'Total Employees', value: '124', icon: UserCheck, change: '+12%', trend: 'up', iconColor: 'text-blue-600 dark:text-blue-400' },
-  { label: 'Active Today', value: '98', icon: ClockCheck, change: '+5%', trend: 'up', iconColor: 'text-green-600 dark:text-green-400' },
-  { label: 'On Leave', value: '8', icon: Calendar, change: '-2%', trend: 'down', iconColor: 'text-orange-600 dark:text-orange-400' },
-  { label: 'Pending Requests', value: '15', icon: Briefcase, change: '+3%', trend: 'up', iconColor: 'text-purple-600 dark:text-purple-400' },
-];
-
 export default function DashboardPage() {
   const router = useRouter();
   const { user, employee, isAuthenticated, fetchUser } = useAuthStore();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalEmployees: 0,
+    activeEmployees: 0,
+    inactiveEmployees: 0,
+    activeToday: 0,
+    onLeave: 0,
+    pendingRequests: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -149,6 +152,24 @@ export default function DashboardPage() {
       isMounted = false;
     };
   }, [isAuthenticated, user?.id, router]);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setLoadingStats(true);
+        const dashboardStats = await dashboardService.getDashboardStats();
+        setStats(dashboardStats);
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    if (isAuthenticated && user) {
+      loadStats();
+    }
+  }, [isAuthenticated, user]);
 
   if (!isAuthenticated || !user) {
     return (
@@ -212,36 +233,77 @@ export default function DashboardPage() {
           variants={itemVariants}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
         >
-          {stats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02, y: -4 }}
-                className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${stat.iconColor.replace('text-', 'bg-').replace('-600', '-100 dark:bg-').replace('-400', '-900/20')}`}>
-                    <Icon className={`w-6 h-6 ${stat.iconColor}`} />
-                  </div>
-                  <span
-                    className={`text-sm font-semibold ${
-                      stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {stat.change}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-1">
-                  {stat.value}
-                </h3>
-                <p className="text-sm text-cyan-400/70">{stat.label}</p>
-              </motion.div>
-            );
-          })}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900/20">
+                <UserCheck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">
+              {loadingStats ? '...' : stats.totalEmployees}
+            </h3>
+            <p className="text-sm text-cyan-400/70">Total Employees</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-green-100 dark:bg-green-900/20">
+                <ClockCheck className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">
+              {loadingStats ? '...' : stats.activeToday}
+            </h3>
+            <p className="text-sm text-cyan-400/70">Active Today</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-orange-100 dark:bg-orange-900/20">
+                <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">
+              {loadingStats ? '...' : stats.onLeave}
+            </h3>
+            <p className="text-sm text-cyan-400/70">On Leave</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/20">
+                <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">
+              {loadingStats ? '...' : stats.pendingRequests}
+            </h3>
+            <p className="text-sm text-cyan-400/70">Pending Requests</p>
+          </motion.div>
         </motion.div>
 
         {/* Quick Actions */}
