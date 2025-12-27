@@ -152,7 +152,7 @@ export default function EmployeesPage() {
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                 <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              Users
+              Employees
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
               Manage system users and their access

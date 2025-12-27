@@ -139,14 +139,14 @@ export default function UsersPage() {
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                 <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              Employees
+              Users
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
               Manage and view all employee information
             </p>
           </div>
           <Link
-            href="/employees/new"
+            href="/users/new"
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg hover:shadow-xl"
           >
             <Plus className="w-5 h-5" />
@@ -346,7 +346,7 @@ export default function UsersPage() {
                       : 'grid-cols-2'
                 }`}>
                   <Link
-                    href={`/employees/${employee.id}`}
+                    href={`/users/${employee.id}`}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
                   >
                     <Eye className="w-4 h-4" />
@@ -354,7 +354,7 @@ export default function UsersPage() {
                   </Link>
                   {employee.user?.role !== 'ADMIN' && (
                     <Link
-                      href={`/employees/${employee.id}/edit`}
+                      href={`/users/${employee.id}/edit`}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
                     >
                       <Edit className="w-4 h-4" />
