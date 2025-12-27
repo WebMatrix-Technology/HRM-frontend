@@ -123,7 +123,7 @@ export default function EditEmployeePage() {
 
     try {
       // Validate required fields
-      if (!formData.firstName || !formData.lastName) {
+      if (!formData.firstName || !formData.lastName || !formData.department || !formData.position) {
         throw new Error('Please fill in all required fields');
       }
 
@@ -424,7 +424,7 @@ export default function EditEmployeePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="department" className="block text-sm font-medium text-cyan-300 mb-2">
-                    Department
+                    Department <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -433,6 +433,7 @@ export default function EditEmployeePage() {
                     <select
                       id="department"
                       name="department"
+                      required
                       className="block w-full pl-10 pr-3 py-2.5 border border-dark-border rounded-lg bg-dark-surface text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                       value={formData.department}
                       onChange={handleChange}
@@ -449,7 +450,7 @@ export default function EditEmployeePage() {
 
                 <div>
                   <label htmlFor="position" className="block text-sm font-medium text-cyan-300 mb-2">
-                    Position
+                    Position <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -459,6 +460,7 @@ export default function EditEmployeePage() {
                       id="position"
                       name="position"
                       type="text"
+                      required
                       className="block w-full pl-10 pr-3 py-2.5 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                       placeholder="Software Engineer"
                       value={formData.position}
