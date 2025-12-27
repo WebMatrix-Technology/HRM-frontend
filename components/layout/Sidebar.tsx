@@ -15,20 +15,23 @@ import {
   UsersRound,
   LogOut,
   User,
+  FileCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Users', href: '/users', icon: User },
-  { name: 'Employees', href: '/employees', icon: Users },
-  { name: 'Attendance', href: '/attendance', icon: Clock },
-  { name: 'Leave', href: '/leave', icon: Calendar },
-  { name: 'Payroll', href: '/payroll', icon: DollarSign },
-  { name: 'Performance', href: '/performance', icon: TrendingUp },
-  { name: 'Recruitment', href: '/recruitment', icon: Briefcase },
-  { name: 'Chat', href: '/chat', icon: MessageSquare },
-  { name: 'Group Chat', href: '/group-chat', icon: UsersRound },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Users', href: '/users', icon: User, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Employees', href: '/employees', icon: Users, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Attendance', href: '/attendance', icon: Clock, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Leave', href: '/leave', icon: Calendar, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Payroll', href: '/payroll', icon: DollarSign, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Allotments', href: '/allotments', icon: FileCheck, roles: [Role.ADMIN, Role.HR] },
+  { name: 'Performance', href: '/performance', icon: TrendingUp, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Recruitment', href: '/recruitment', icon: Briefcase, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Chat', href: '/chat', icon: MessageSquare, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Group Chat', href: '/group-chat', icon: UsersRound, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
 ];
 
 export default function Sidebar() {
@@ -71,38 +74,44 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <div className="mt-5 flex-1 flex flex-col px-3 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
+            {navigation
+              .filter((item) => {
+                // Filter navigation items based on user role
+                if (!item.roles || !user?.role) return true;
+                return item.roles.includes(user.role);
+              })
+              .map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
 
-              return (
-                <motion.div
-                  key={item.name}
-                  whileHover={{ x: 4 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link
-                    href={item.href}
-                    className={`
-                      group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200
-                      ${
-                        isActive
-                          ? 'bg-gradient-primary text-white shadow-lg shadow-primary-500/50'
-                          : 'text-cyan-300/80 hover:bg-dark-surface hover:text-cyan-400'
-                      }
-                    `}
+                return (
+                  <motion.div
+                    key={item.name}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <Icon
+                    <Link
+                      href={item.href}
                       className={`
-                        mr-3 h-5 w-5 flex-shrink-0
-                        ${isActive ? 'text-white' : 'text-cyan-400/60'}
+                        group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200
+                        ${
+                          isActive
+                            ? 'bg-gradient-primary text-white shadow-lg shadow-primary-500/50'
+                            : 'text-cyan-300/80 hover:bg-dark-surface hover:text-cyan-400'
+                        }
                       `}
-                    />
-                    {item.name}
-                  </Link>
-                </motion.div>
-              );
-            })}
+                    >
+                      <Icon
+                        className={`
+                          mr-3 h-5 w-5 flex-shrink-0
+                          ${isActive ? 'text-white' : 'text-cyan-400/60'}
+                        `}
+                      />
+                      {item.name}
+                    </Link>
+                  </motion.div>
+                );
+              })}
           </div>
 
           {/* User Section */}
