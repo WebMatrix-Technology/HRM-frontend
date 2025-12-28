@@ -14,12 +14,15 @@ import {
   UserPlus,
   LogOut,
   Check,
-  CheckCheck
+  CheckCheck,
+  X,
+  User
 } from 'lucide-react';
 import { Group, ChatMessage } from '@/services/chat.service';
 import { chatService } from '@/services/chat.service';
 import { socketService } from '@/services/socket.service';
 import { useAuthStore } from '@/store/authStore';
+import { employeeService, Employee } from '@/services/employee.service';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
 export default function GroupChatPage() {
@@ -35,6 +38,13 @@ export default function GroupChatPage() {
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [addingMembers, setAddingMembers] = useState(false);
+  const [addMembersError, setAddMembersError] = useState<string | null>(null);
   const employee = useAuthStore((state) => state.employee);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +101,12 @@ export default function GroupChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (showAddMembers && selectedGroup) {
+      loadAvailableEmployees();
+    }
+  }, [showAddMembers, selectedGroup]);
 
   const loadGroups = async () => {
     try {
@@ -176,6 +192,85 @@ export default function GroupChatPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadAvailableEmployees = async () => {
+    if (!selectedGroup) return;
+    
+    try {
+      setLoadingEmployees(true);
+      const result = await employeeService.getEmployees(1, 1000, { isActive: true });
+      
+      // Filter out current employee and employees already in the group
+      const existingMemberIds = new Set(selectedGroup.members?.map(m => m.employee.id) || []);
+      const filtered = (result.employees || []).filter(
+        (emp: Employee) => emp.id !== employee?.id && !existingMemberIds.has(emp.id)
+      );
+      setAvailableEmployees(filtered);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const handleAddMembers = async () => {
+    if (!selectedGroup || selectedEmployeeIds.length === 0) return;
+
+    // Check if user has permission (admin or moderator)
+    const userMembership = selectedGroup.members?.find(m => m.employee.id === employee?.id);
+    if (!userMembership || (userMembership.role !== 'ADMIN' && userMembership.role !== 'MODERATOR')) {
+      setAddMembersError('Only admins and moderators can add members to the group.');
+      return;
+    }
+
+    setAddingMembers(true);
+    setAddMembersError(null);
+
+    try {
+      await chatService.addGroupMembers(selectedGroup.id, selectedEmployeeIds);
+      
+      // Reload groups to get updated member list
+      await loadGroups();
+      
+      // Update selected group
+      const updatedGroups = await chatService.getGroups();
+      const updatedGroup = updatedGroups.find(g => g.id === selectedGroup.id);
+      if (updatedGroup) {
+        setSelectedGroup(updatedGroup);
+      }
+      
+      setShowAddMembers(false);
+      setSelectedEmployeeIds([]);
+      setEmployeeSearchQuery('');
+    } catch (error: any) {
+      console.error('Failed to add members:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Failed to add members. Please try again.';
+      setAddMembersError(errorMessage);
+    } finally {
+      setAddingMembers(false);
+    }
+  };
+
+  const toggleEmployeeSelection = (employeeId: string) => {
+    setSelectedEmployeeIds(prev => 
+      prev.includes(employeeId)
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const filteredEmployees = availableEmployees.filter(emp => {
+    const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+    const search = employeeSearchQuery.toLowerCase();
+    return fullName.includes(search) || emp.employeeId.toLowerCase().includes(search);
+  });
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
 
   const formatTime = (dateString: string) => {
@@ -438,6 +533,10 @@ export default function GroupChatPage() {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setShowAddMembers(true);
+                      loadAvailableEmployees();
+                    }}
                     className="p-2 rounded-lg hover:bg-dark-surface transition-colors"
                     title="Add members"
                   >
@@ -589,6 +688,178 @@ export default function GroupChatPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Add Members Modal */}
+      <AnimatePresence>
+        {showAddMembers && selectedGroup && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col border border-slate-700"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-cyan-400" />
+                  Add Members to {selectedGroup.name}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAddMembers(false);
+                    setSelectedEmployeeIds([]);
+                    setEmployeeSearchQuery('');
+                    setAddMembersError(null);
+                  }}
+                  className="p-1 rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="p-4 border-b border-slate-700">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={employeeSearchQuery}
+                    onChange={(e) => setEmployeeSearchQuery(e.target.value)}
+                    placeholder="Search employees..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {addMembersError && (
+                <div className="mx-4 mt-4 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                  {addMembersError}
+                </div>
+              )}
+
+              {/* Selected Count */}
+              {selectedEmployeeIds.length > 0 && (
+                <div className="px-4 pt-4 text-sm text-cyan-400">
+                  {selectedEmployeeIds.length} employee{selectedEmployeeIds.length !== 1 ? 's' : ''} selected
+                </div>
+              )}
+
+              {/* Employee List */}
+              <div className="flex-1 overflow-y-auto p-2">
+                {loadingEmployees ? (
+                  <div className="flex items-center justify-center py-8">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: [0, 0, 1, 1] as const }}
+                      className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full"
+                    />
+                  </div>
+                ) : filteredEmployees.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <User className="w-12 h-12 text-slate-500 mb-2" />
+                    <p className="text-slate-400">
+                      {employeeSearchQuery ? 'No employees found' : 'No employees available to add'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {filteredEmployees.map((emp) => {
+                      const employeeName = `${emp.firstName} ${emp.lastName}`;
+                      const isSelected = selectedEmployeeIds.includes(emp.id);
+                      return (
+                        <motion.div
+                          key={emp.id}
+                          whileHover={{ x: 4 }}
+                          onClick={() => toggleEmployeeSelection(emp.id)}
+                          className={`
+                            flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors
+                            ${isSelected 
+                              ? 'bg-cyan-500/20 border border-cyan-500/50' 
+                              : 'hover:bg-slate-700'
+                            }
+                          `}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {emp.avatar ? (
+                              <img
+                                src={emp.avatar}
+                                alt={employeeName}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              getInitials(emp.firstName, emp.lastName)
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-white truncate">{employeeName}</h4>
+                            <p className="text-sm text-slate-400 truncate">
+                              {emp.position || emp.employeeId}
+                              {emp.department && ` • ${emp.department}`}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <Check className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-700 flex gap-2">
+                <motion.button
+                  onClick={handleAddMembers}
+                  disabled={selectedEmployeeIds.length === 0 || addingMembers}
+                  whileHover={selectedEmployeeIds.length === 0 || addingMembers ? {} : { scale: 1.02 }}
+                  whileTap={selectedEmployeeIds.length === 0 || addingMembers ? {} : { scale: 0.98 }}
+                  className={`
+                    flex-1 px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2
+                    ${selectedEmployeeIds.length === 0 || addingMembers
+                      ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                      : 'bg-gradient-primary text-white'
+                    }
+                  `}
+                >
+                  {addingMembers ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                      />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      Add {selectedEmployeeIds.length > 0 ? `(${selectedEmployeeIds.length})` : ''}
+                    </>
+                  )}
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setShowAddMembers(false);
+                    setSelectedEmployeeIds([]);
+                    setEmployeeSearchQuery('');
+                    setAddMembersError(null);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg font-medium"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }
