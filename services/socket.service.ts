@@ -42,6 +42,7 @@ class SocketService {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private socketSupported: boolean = true; // Track if socket is supported
 
   connect(token: string): Socket {
     if (typeof window === 'undefined') {
@@ -58,6 +59,7 @@ class SocketService {
     
     // Check if socket is supported at runtime
     const socketSupported = isSocketSupported(socketUrl);
+    this.socketSupported = socketSupported;
     
     // If socket is not supported (e.g., on Vercel), don't attempt connection
     if (!socketSupported) {
@@ -150,11 +152,11 @@ class SocketService {
   }
 
   disconnect(): void {
-    if (this.socket) {
+    if (this.socket && (this.socket as any).__isMock !== true) {
       this.socket.disconnect();
-      this.socket = null;
-      this.reconnectAttempts = 0;
     }
+    this.socket = null;
+    this.reconnectAttempts = 0;
   }
 
   // One-to-one chat events
@@ -168,14 +170,29 @@ class SocketService {
     this.socket.on('receive_message', callback);
   }
 
+  offReceiveMessage(callback: (message: ChatMessage) => void): void {
+    if (!this.socket) return;
+    this.socket.off('receive_message', callback);
+  }
+
   onMessageSent(callback: (message: ChatMessage) => void): void {
     if (!this.socket) return;
     this.socket.on('message_sent', callback);
   }
 
+  offMessageSent(callback: (message: ChatMessage) => void): void {
+    if (!this.socket) return;
+    this.socket.off('message_sent', callback);
+  }
+
   onTyping(callback: (data: { userId: string; isTyping: boolean }) => void): void {
     if (!this.socket) return;
     this.socket.on('user_typing', callback);
+  }
+
+  offTyping(callback: (data: { userId: string; isTyping: boolean }) => void): void {
+    if (!this.socket) return;
+    this.socket.off('user_typing', callback);
   }
 
   emitTyping(receiverId: string, isTyping: boolean): void {
@@ -204,14 +221,29 @@ class SocketService {
     this.socket.on('receive_group_message', callback);
   }
 
+  offReceiveGroupMessage(callback: (message: ChatMessage) => void): void {
+    if (!this.socket) return;
+    this.socket.off('receive_group_message', callback);
+  }
+
   onUserJoined(callback: (data: { employeeId: string; groupId: string }) => void): void {
     if (!this.socket) return;
     this.socket.on('user_joined', callback);
   }
 
+  offUserJoined(callback: (data: { employeeId: string; groupId: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.off('user_joined', callback);
+  }
+
   onUserLeft(callback: (data: { employeeId: string; groupId: string }) => void): void {
     if (!this.socket) return;
     this.socket.on('user_left', callback);
+  }
+
+  offUserLeft(callback: (data: { employeeId: string; groupId: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.off('user_left', callback);
   }
 
   markMessageAsRead(messageId: string): void {
@@ -224,9 +256,19 @@ class SocketService {
     this.socket.on('error', callback);
   }
 
+  offError(callback: (error: { message: string }) => void): void {
+    if (!this.socket) return;
+    this.socket.off('error', callback);
+  }
+
   onConnect(callback: () => void): void {
     if (!this.socket) return;
     this.socket.on('connect', callback);
+  }
+
+  offConnect(callback: () => void): void {
+    if (!this.socket) return;
+    this.socket.off('connect', callback);
   }
 
   onDisconnect(callback: () => void): void {
@@ -234,8 +276,21 @@ class SocketService {
     this.socket.on('disconnect', callback);
   }
 
+  offDisconnect(callback: () => void): void {
+    if (!this.socket) return;
+    this.socket.off('disconnect', callback);
+  }
+
   isConnected(): boolean {
+    // If socket is not supported (disabled), return false to indicate no real connection
+    if (!this.socketSupported || (this.socket as any)?.__isMock === true) {
+      return false;
+    }
     return this.socket?.connected || false;
+  }
+
+  isSocketDisabled(): boolean {
+    return !this.socketSupported || (this.socket as any)?.__isMock === true;
   }
 }
 

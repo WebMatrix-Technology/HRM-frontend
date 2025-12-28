@@ -33,7 +33,8 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     socketService.connect(token);
     loadMessages();
 
-    socketService.onReceiveMessage((message: ChatMessage) => {
+    // Define callback functions that can be cleaned up
+    const handleReceiveMessage = (message: ChatMessage) => {
       if (message.senderId === receiverId || message.receiverId === receiverId) {
         setMessages((prev) => {
           // Remove any temporary messages
@@ -52,9 +53,9 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         }
         scrollToBottom();
       }
-    });
+    };
 
-    socketService.onMessageSent((message: ChatMessage) => {
+    const handleMessageSent = (message: ChatMessage) => {
       if (message.receiverId === receiverId || message.senderId === employee?.id) {
         setMessages((prev) => {
           // Remove any temporary messages with the same content from the same sender
@@ -69,31 +70,43 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         });
         scrollToBottom();
       }
-    });
+    };
 
-    socketService.onTyping((data) => {
+    const handleTyping = (data: { userId: string; isTyping: boolean }) => {
       if (data.userId === receiverId) {
         setIsTyping(data.isTyping);
       }
-    });
+    };
 
-    socketService.onError((error) => {
+    const handleError = (error: { message: string }) => {
       console.error('Socket error:', error);
       alert(`Chat error: ${error.message || 'Failed to send message'}`);
-    });
+    };
 
-    // Log socket connection status
-    socketService.onConnect(() => {
+    const handleConnect = () => {
       console.log('Socket connected successfully');
-    });
+    };
 
-    socketService.onDisconnect(() => {
+    const handleDisconnect = () => {
       console.warn('Socket disconnected');
-    });
+    };
+
+    // Register event listeners
+    socketService.onReceiveMessage(handleReceiveMessage);
+    socketService.onMessageSent(handleMessageSent);
+    socketService.onTyping(handleTyping);
+    socketService.onError(handleError);
+    socketService.onConnect(handleConnect);
+    socketService.onDisconnect(handleDisconnect);
 
     return () => {
-      // Don't disconnect socket here as it might be used by other components
-      // Just clean up event listeners if needed
+      // Clean up event listeners when component unmounts or receiverId changes
+      socketService.offReceiveMessage(handleReceiveMessage);
+      socketService.offMessageSent(handleMessageSent);
+      socketService.offTyping(handleTyping);
+      socketService.offError(handleError);
+      socketService.offConnect(handleConnect);
+      socketService.offDisconnect(handleDisconnect);
     };
   }, [receiverId, employee]);
 
@@ -160,6 +173,16 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
     socketService.emitTyping(receiverId, false);
+    
+    // Check if socket is disabled (e.g., on Vercel)
+    if (socketService.isSocketDisabled()) {
+      // Socket is disabled, remove optimistic message and show user-friendly message
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
+      setNewMessage(messageText); // Restore message text
+      // Don't show alert - socket is intentionally disabled, user already saw the info message
+      console.info('Message sending is disabled: Socket.IO is not available on this platform.');
+      return;
+    }
     
     // Check if socket is connected, if not, try to reconnect
     if (!socketService.isConnected()) {

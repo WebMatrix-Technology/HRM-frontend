@@ -38,8 +38,9 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
     socketService.onMessageSent(handleNewMessage);
 
     return () => {
-      // Cleanup: Remove listeners if component unmounts
-      // Note: socketService doesn't have removeListener, so we'll keep it simple
+      // Cleanup: Remove listeners when component unmounts
+      socketService.offReceiveMessage(handleNewMessage);
+      socketService.offMessageSent(handleNewMessage);
     };
   }, []);
 

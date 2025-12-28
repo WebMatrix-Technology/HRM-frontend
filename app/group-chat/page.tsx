@@ -43,16 +43,19 @@ export default function GroupChatPage() {
       socketService.connect(token);
     }
 
-    socketService.onReceiveGroupMessage((message: ChatMessage) => {
+    const handleReceiveGroupMessage = (message: ChatMessage) => {
       if (selectedGroup && message.groupId === selectedGroup.id) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === message.id)) return prev;
           return [...prev, message];
         });
       }
-    });
+    };
+
+    socketService.onReceiveGroupMessage(handleReceiveGroupMessage);
 
     return () => {
+      socketService.offReceiveGroupMessage(handleReceiveGroupMessage);
       socketService.disconnect();
     };
   }, []);
@@ -112,6 +115,13 @@ export default function GroupChatPage() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedGroup) return;
+
+    // Check if socket is disabled (e.g., on Vercel)
+    if (socketService.isSocketDisabled()) {
+      console.info('Message sending is disabled: Socket.IO is not available on this platform.');
+      // Don't clear the message - let user know it can't be sent
+      return;
+    }
 
     socketService.sendGroupMessage(selectedGroup.id, newMessage.trim());
     setNewMessage('');
