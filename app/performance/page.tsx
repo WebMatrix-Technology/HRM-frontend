@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { performanceService, Performance } from '@/services/performance.service';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 import {
   TrendingUp,
   Plus,
@@ -15,13 +18,12 @@ import {
 } from 'lucide-react';
 
 export default function PerformancePage() {
+  const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const [performances, setPerformances] = useState<Performance[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-
-  useEffect(() => {
-    loadPerformances();
-  }, []);
+  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
 
   const loadPerformances = async () => {
     try {
@@ -34,6 +36,36 @@ export default function PerformancePage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    loadPerformances();
+  }, [isAuthenticated, canAccess, router]);
+
+  if (!canAccess) {
+    return null;
+  }
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    loadPerformances();
+  }, [isAuthenticated, canAccess, router]);
+
+  if (!canAccess) {
+    return null;
+  }
 
   const getRatingColor = (rating: number) => {
     if (rating >= 4.5) return 'text-green-600';

@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { recruitmentService, JobPosting, JobApplication } from '@/services/recruitment.service';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 import {
   Briefcase,
   Plus,
@@ -18,18 +21,13 @@ import {
 } from 'lucide-react';
 
 export default function RecruitmentPage() {
+  const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'jobs' | 'applications'>('jobs');
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (activeTab === 'jobs') {
-      loadJobPostings();
-    } else {
-      loadApplications();
-    }
-  }, [activeTab]);
+  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
 
   const loadJobPostings = async () => {
     try {
@@ -54,6 +52,25 @@ export default function RecruitmentPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    if (activeTab === 'jobs') {
+      loadJobPostings();
+    } else {
+      loadApplications();
+    }
+  }, [isAuthenticated, canAccess, router, activeTab]);
+
+  if (!canAccess) {
+    return null;
+  }
 
   const getStatusBadge = (status: JobApplication['status']) => {
     const styles = {

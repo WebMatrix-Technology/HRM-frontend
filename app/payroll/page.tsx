@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { payrollService, Payroll } from '@/services/payroll.service';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 import {
   DollarSign,
   Download,
@@ -14,14 +17,13 @@ import {
 } from 'lucide-react';
 
 export default function PayrollPage() {
+  const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-  useEffect(() => {
-    loadPayrolls();
-  }, [selectedMonth, selectedYear]);
+  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
 
   const loadPayrolls = async () => {
     try {
@@ -34,6 +36,21 @@ export default function PayrollPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    loadPayrolls();
+  }, [isAuthenticated, canAccess, router, selectedMonth, selectedYear]);
+
+  if (!canAccess) {
+    return null;
+  }
 
   const getStatusBadge = (status: Payroll['status']) => {
     const styles = {

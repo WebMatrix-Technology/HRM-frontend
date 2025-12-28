@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Employee, employeeService } from '@/services/employee.service';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -25,7 +26,8 @@ import {
 import Link from 'next/link';
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuthStore();
+  const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -35,11 +37,23 @@ export default function UsersPage() {
   const [departments, setDepartments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const isAdmin = currentUser?.role === Role.ADMIN;
+  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
     loadEmployees();
     loadDepartments();
-  }, [page, departmentFilter, statusFilter]);
+  }, [isAuthenticated, canAccess, router, page, departmentFilter, statusFilter]);
+
+  if (!canAccess) {
+    return null;
+  }
 
   const loadEmployees = async () => {
     try {
@@ -56,6 +70,22 @@ export default function UsersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    loadEmployees();
+    loadDepartments();
+  }, [isAuthenticated, canAccess, router, page, departmentFilter, statusFilter]);
+
+  if (!canAccess) {
+    return null;
+  }
 
   const loadDepartments = async () => {
     try {
