@@ -79,7 +79,7 @@ class SocketService {
           off: () => this.socket as any,
           disconnect: () => this.socket as any,
           connect: () => this.socket as any,
-        } as any;
+        } as any as Socket;
         console.info('Socket.io is disabled: Vercel serverless functions do not support WebSocket connections. Real-time chat features will use polling via REST API instead.');
       }
       return this.socket;
