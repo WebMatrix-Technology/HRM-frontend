@@ -33,6 +33,8 @@ export default function GroupChatPage() {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const employee = useAuthStore((state) => state.employee);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -131,20 +133,44 @@ export default function GroupChatPage() {
     e.preventDefault();
     if (!newGroupName.trim()) return;
 
+    setCreatingGroup(true);
+    setError(null);
+    const groupNameToCreate = newGroupName.trim();
+
     try {
-      const group = await chatService.createGroup({
-        name: newGroupName.trim(),
+      await chatService.createGroup({
+        name: groupNameToCreate,
         description: newGroupDescription.trim() || undefined,
-        type: 'PUBLIC',
+        type: 'GENERAL', // Changed from 'PUBLIC' to 'GENERAL' (valid enum value)
       });
-      setGroups([...groups, group]);
-      setFilteredGroups([...filteredGroups, group]);
+      
+      // Reload groups to get the properly formatted group with members populated
+      const updatedGroups = await chatService.getGroups();
+      setGroups(updatedGroups);
+      setFilteredGroups(updatedGroups);
+      
       setShowCreateGroup(false);
       setNewGroupName('');
       setNewGroupDescription('');
-      setSelectedGroup(group);
-    } catch (error) {
+      
+      // Find and select the newly created group
+      const newGroup = updatedGroups.find(g => 
+        g.name === groupNameToCreate && 
+        g.createdBy === employee?.id
+      );
+      if (newGroup) {
+        setSelectedGroup(newGroup);
+      }
+    } catch (error: any) {
       console.error('Failed to create group:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Failed to create group. Please try again.';
+      setError(errorMessage);
+      alert(errorMessage); // Show error to user
+    } finally {
+      setCreatingGroup(false);
     }
   };
 
@@ -230,29 +256,51 @@ export default function GroupChatPage() {
                   onSubmit={handleCreateGroup}
                   className="space-y-3 mb-4"
                 >
+                  {error && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                      {error}
+                    </div>
+                  )}
                   <input
                     type="text"
                     value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onChange={(e) => {
+                      setNewGroupName(e.target.value);
+                      setError(null); // Clear error when user types
+                    }}
                     placeholder="Group name"
                     required
-                    className="w-full px-3 py-2 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    disabled={creatingGroup}
+                    className="w-full px-3 py-2 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <textarea
                     value={newGroupDescription}
                     onChange={(e) => setNewGroupDescription(e.target.value)}
                     placeholder="Description (optional)"
                     rows={2}
-                    className="w-full px-3 py-2 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                    disabled={creatingGroup}
+                    className="w-full px-3 py-2 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="flex gap-2">
                     <motion.button
                       type="submit"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex-1 px-4 py-2 bg-gradient-primary text-white rounded-lg font-medium"
+                      disabled={creatingGroup || !newGroupName.trim()}
+                      whileHover={creatingGroup || !newGroupName.trim() ? {} : { scale: 1.02 }}
+                      whileTap={creatingGroup || !newGroupName.trim() ? {} : { scale: 0.98 }}
+                      className="flex-1 px-4 py-2 bg-gradient-primary text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Create
+                      {creatingGroup ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                          />
+                          Creating...
+                        </>
+                      ) : (
+                        'Create'
+                      )}
                     </motion.button>
                     <motion.button
                       type="button"
@@ -260,10 +308,12 @@ export default function GroupChatPage() {
                         setShowCreateGroup(false);
                         setNewGroupName('');
                         setNewGroupDescription('');
+                        setError(null);
                       }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="px-4 py-2 bg-dark-surface text-cyan-300 rounded-lg font-medium"
+                      disabled={creatingGroup}
+                      whileHover={creatingGroup ? {} : { scale: 1.02 }}
+                      whileTap={creatingGroup ? {} : { scale: 0.98 }}
+                      className="px-4 py-2 bg-dark-surface text-cyan-300 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </motion.button>
