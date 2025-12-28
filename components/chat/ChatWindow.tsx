@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Paperclip, Smile, MoreVertical, Check, CheckCheck, Clock, MessageCircle } from 'lucide-react';
+import { Send, Smile, MoreVertical, Check, CheckCheck, Clock, MessageCircle } from 'lucide-react';
 import { ChatMessage } from '@/services/chat.service';
 import { chatService } from '@/services/chat.service';
 import { socketService } from '@/services/socket.service';
@@ -36,10 +36,12 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     socketService.onReceiveMessage((message: ChatMessage) => {
       if (message.senderId === receiverId || message.receiverId === receiverId) {
         setMessages((prev) => {
+          // Remove any temporary messages
+          const filtered = prev.filter(m => !m.id.startsWith('temp-'));
           // Avoid duplicates
-          if (prev.some((m) => m.id === message.id)) return prev;
+          if (filtered.some((m) => m.id === message.id)) return filtered;
           // Insert message in correct position based on createdAt
-          const newMessages = [...prev, message].sort(
+          const newMessages = [...filtered, message].sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           return newMessages;
@@ -48,19 +50,24 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         if (message.senderId === receiverId && !message.isRead) {
           socketService.markMessageAsRead(message.id);
         }
+        scrollToBottom();
       }
     });
 
     socketService.onMessageSent((message: ChatMessage) => {
-      if (message.receiverId === receiverId) {
+      if (message.receiverId === receiverId || message.senderId === employee?.id) {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === message.id)) return prev;
+          // Remove any temporary messages with the same content from the same sender
+          const filtered = prev.filter(m => !(m.id.startsWith('temp-') && m.message === message.message && m.senderId === message.senderId));
+          // Avoid duplicates
+          if (filtered.some((m) => m.id === message.id)) return filtered;
           // Insert message in correct position based on createdAt
-          const newMessages = [...prev, message].sort(
+          const newMessages = [...filtered, message].sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           return newMessages;
         });
+        scrollToBottom();
       }
     });
 
@@ -72,6 +79,16 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
 
     socketService.onError((error) => {
       console.error('Socket error:', error);
+      alert(`Chat error: ${error.message || 'Failed to send message'}`);
+    });
+
+    // Log socket connection status
+    socketService.onConnect(() => {
+      console.log('Socket connected successfully');
+    });
+
+    socketService.onDisconnect(() => {
+      console.warn('Socket disconnected');
     });
 
     return () => {
@@ -121,9 +138,66 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     if (!newMessage.trim() || !employee) return;
 
     const messageText = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
+    
+    // Optimistic update - show message immediately
+    const optimisticMessage: ChatMessage = {
+      id: tempId,
+      senderId: employee.id,
+      receiverId: receiverId,
+      message: messageText,
+      type: 'TEXT',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: employee.id,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        avatar: employee.avatar,
+      },
+    };
+    
+    setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
     socketService.emitTyping(receiverId, false);
-    socketService.sendMessage(receiverId, messageText);
+    
+    // Check if socket is connected, if not, try to reconnect
+    if (!socketService.isConnected()) {
+      console.warn('Socket not connected. Attempting to reconnect...');
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        socketService.connect(token);
+        // Wait a bit for connection to establish
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter(m => m.id !== tempId));
+        setNewMessage(messageText); // Restore message text
+        alert('Not authenticated. Please log in again.');
+        return;
+      }
+    }
+
+    // Verify socket is still connected before sending
+    if (!socketService.isConnected()) {
+      console.error('Socket still not connected after reconnect attempt');
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
+      setNewMessage(messageText); // Restore message text
+      alert('Unable to connect to chat server. Please refresh the page and try again.');
+      return;
+    }
+    
+    try {
+      console.log('Sending message to:', receiverId, 'Message:', messageText);
+      socketService.sendMessage(receiverId, messageText);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
+      setNewMessage(messageText); // Restore message text
+      alert('Failed to send message. Please try again.');
+    }
   };
 
   const handleTyping = (value: string) => {
@@ -335,16 +409,6 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       {/* Input Area */}
       <form onSubmit={handleSendMessage} className="p-4 border-t border-dark-border glass">
         <div className="flex items-end gap-2">
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2 rounded-lg hover:bg-dark-surface transition-colors flex-shrink-0"
-            title="Attach file"
-          >
-            <Paperclip className="w-5 h-5 text-cyan-400" />
-          </motion.button>
-          
           <div className="flex-1 relative">
             <textarea
               value={newMessage}
