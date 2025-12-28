@@ -24,13 +24,22 @@ import {
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { employeeService, CreateEmployeeData } from '@/services/employee.service';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 
 export default function AddEmployeePage() {
   const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
+  
+  // Access control: Only HR and Manager can add employees
+  const isHR = currentUser?.role === Role.HR;
+  const isManager = currentUser?.role === Role.MANAGER;
+  const isAdmin = currentUser?.role === Role.ADMIN;
+  const canAccess = isHR || isManager || isAdmin;
 
   // Form fields
   const [formData, setFormData] = useState<CreateEmployeeData>({
@@ -54,8 +63,19 @@ export default function AddEmployeePage() {
   });
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
     loadDepartments();
-  }, []);
+  }, [isAuthenticated, canAccess, router]);
+  
+  if (!canAccess) {
+    return null;
+  }
 
   const loadDepartments = async () => {
     try {
@@ -255,9 +275,11 @@ export default function AddEmployeePage() {
                     onChange={handleChange}
                   >
                     <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="HR">HR</option>
-                    <option value="ADMIN">Admin</option>
+                    {/* HR can only add employees, Manager can add HR and employees */}
+                    {!isHR && <option value="HR">HR</option>}
+                    {/* Only Admin can add Manager and Admin */}
+                    {isAdmin && <option value="MANAGER">Manager</option>}
+                    {isAdmin && <option value="ADMIN">Admin</option>}
                   </select>
                 </div>
               </div>

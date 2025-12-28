@@ -37,7 +37,10 @@ export default function UsersPage() {
   const [departments, setDepartments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
+  const isHR = currentUser?.role === Role.HR;
+  const isManager = currentUser?.role === Role.MANAGER;
+  const canAccess = isAdmin || isHR || isManager;
+  const canAddEmployee = isHR || isManager || isAdmin; // HR, Manager, and Admin can add employees
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -175,13 +178,15 @@ export default function UsersPage() {
               Manage and view all employee information
             </p>
           </div>
-          <Link
-            href="/users/new"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg hover:shadow-xl"
-          >
-            <Plus className="w-5 h-5" />
-            Add Employee
-          </Link>
+          {canAddEmployee && (
+            <Link
+              href="/users/new"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg hover:shadow-xl"
+            >
+              <Plus className="w-5 h-5" />
+              Add Employee
+            </Link>
+          )}
         </div>
 
         {/* Stats Cards */}

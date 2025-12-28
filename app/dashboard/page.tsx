@@ -8,7 +8,6 @@ import {
   Users,
   Clock,
   Calendar,
-  DollarSign,
   TrendingUp,
   Briefcase,
   MessageSquare,
@@ -48,15 +47,6 @@ const dashboardCards = [
     color: 'from-purple-500 to-purple-600',
     bgColor: 'bg-purple-50 dark:bg-purple-900/20',
     iconColor: 'text-purple-600 dark:text-purple-400',
-  },
-  {
-    name: 'Payroll',
-    href: '/payroll',
-    icon: DollarSign,
-    description: 'Handle payroll processing',
-    color: 'from-yellow-500 to-yellow-600',
-    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-    iconColor: 'text-yellow-600 dark:text-yellow-400',
   },
   {
     name: 'Performance',
