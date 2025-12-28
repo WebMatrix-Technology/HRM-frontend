@@ -56,7 +56,7 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
       // Filter out current employee and employees already in conversations
       const existingEmployeeIds = new Set(conversations.map(c => c.employee.id));
       const filtered = (result.employees || []).filter(
-        emp => emp.id !== currentEmployee?.id && !existingEmployeeIds.has(emp.id)
+        (emp: Employee) => emp.id !== currentEmployee?.id && !existingEmployeeIds.has(emp.id)
       );
       setEmployees(filtered);
     } catch (error) {
