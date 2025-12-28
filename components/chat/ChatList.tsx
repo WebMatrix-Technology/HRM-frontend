@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, MessageCircle, Users, Plus, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, MessageCircle, Users, Plus, CheckCircle2, X, User } from 'lucide-react';
 import { Conversation, ChatMessage } from '@/services/chat.service';
 import { chatService } from '@/services/chat.service';
 import { socketService } from '@/services/socket.service';
+import { employeeService, Employee } from '@/services/employee.service';
+import { useAuthStore } from '@/store/authStore';
 
 interface ChatListProps {
   onSelectConversation: (employeeId: string, employeeName: string) => void;
@@ -13,10 +15,15 @@ interface ChatListProps {
 }
 
 export default function ChatList({ onSelectConversation, selectedEmployeeId }: ChatListProps) {
+  const { employee: currentEmployee } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -35,6 +42,29 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
       // Note: socketService doesn't have removeListener, so we'll keep it simple
     };
   }, []);
+
+  useEffect(() => {
+    if (showNewConversationModal) {
+      loadEmployees();
+    }
+  }, [showNewConversationModal]);
+
+  const loadEmployees = async () => {
+    try {
+      setLoadingEmployees(true);
+      const result = await employeeService.getEmployees(1, 1000, { isActive: true });
+      // Filter out current employee and employees already in conversations
+      const existingEmployeeIds = new Set(conversations.map(c => c.employee.id));
+      const filtered = (result.employees || []).filter(
+        emp => emp.id !== currentEmployee?.id && !existingEmployeeIds.has(emp.id)
+      );
+      setEmployees(filtered);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -83,6 +113,19 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
 
+  const handleStartConversation = (employee: Employee) => {
+    const employeeName = `${employee.firstName} ${employee.lastName}`;
+    setShowNewConversationModal(false);
+    setEmployeeSearchQuery('');
+    onSelectConversation(employee.id, employeeName);
+  };
+
+  const filteredEmployees = employees.filter(emp => {
+    const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+    const search = employeeSearchQuery.toLowerCase();
+    return fullName.includes(search) || emp.employeeId.toLowerCase().includes(search);
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -107,6 +150,7 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
+            onClick={() => setShowNewConversationModal(true)}
             className="p-2 rounded-lg bg-dark-surface hover:bg-dark-surface/80 transition-colors"
             title="New conversation"
           >
@@ -248,6 +292,106 @@ export default function ChatList({ onSelectConversation, selectedEmployeeId }: C
           </div>
         )}
       </div>
+
+      {/* New Conversation Modal */}
+      <AnimatePresence>
+        {showNewConversationModal && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col border border-slate-700"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-cyan-400" />
+                  Start New Conversation
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowNewConversationModal(false);
+                    setEmployeeSearchQuery('');
+                  }}
+                  className="p-1 rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="p-4 border-b border-slate-700">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={employeeSearchQuery}
+                    onChange={(e) => setEmployeeSearchQuery(e.target.value)}
+                    placeholder="Search employees..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Employee List */}
+              <div className="flex-1 overflow-y-auto p-2">
+                {loadingEmployees ? (
+                  <div className="flex items-center justify-center py-8">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: [0, 0, 1, 1] as const }}
+                      className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full"
+                    />
+                  </div>
+                ) : filteredEmployees.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <User className="w-12 h-12 text-slate-500 mb-2" />
+                    <p className="text-slate-400">
+                      {employeeSearchQuery ? 'No employees found' : 'No employees available'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {filteredEmployees.map((employee) => {
+                      const employeeName = `${employee.firstName} ${employee.lastName}`;
+                      return (
+                        <motion.div
+                          key={employee.id}
+                          whileHover={{ x: 4 }}
+                          onClick={() => handleStartConversation(employee)}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {employee.avatar ? (
+                              <img
+                                src={employee.avatar}
+                                alt={employeeName}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              getInitials(employee.firstName, employee.lastName)
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-white truncate">{employeeName}</h4>
+                            <p className="text-sm text-slate-400 truncate">
+                              {employee.position || employee.employeeId}
+                              {employee.department && ` • ${employee.department}`}
+                            </p>
+                          </div>
+                          <Plus className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Paperclip, Smile, MoreVertical, Check, CheckCheck, Clock } from 'lucide-react';
+import { Send, Paperclip, Smile, MoreVertical, Check, CheckCheck, Clock, MessageCircle } from 'lucide-react';
 import { ChatMessage } from '@/services/chat.service';
 import { chatService } from '@/services/chat.service';
 import { socketService } from '@/services/socket.service';
@@ -92,7 +92,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       const sortedMessages = [...data].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
-      setMessages(sortedMessages);
+      setMessages(sortedMessages || []);
       
       // Mark unread messages as read
       const unreadMessages = sortedMessages.filter(
@@ -101,8 +101,12 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       unreadMessages.forEach((msg) => {
         socketService.markMessageAsRead(msg.id);
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load messages:', error);
+      // If conversation doesn't exist yet (404), just set empty messages
+      if (error.response?.status === 404) {
+        setMessages([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -215,6 +219,21 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-dark-bg/30"
       >
+        {messages.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center h-full">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring' }}
+              className="w-16 h-16 rounded-full bg-gradient-primary/20 flex items-center justify-center mb-4"
+            >
+              <MessageCircle className="w-8 h-8 text-cyan-400" />
+            </motion.div>
+            <p className="text-cyan-400/70 text-center max-w-md">
+              No messages yet. Start the conversation by sending a message below!
+            </p>
+          </div>
+        )}
         <AnimatePresence>
           {messages.map((message, index) => {
             const isOwnMessage = message.senderId === employee?.id;
