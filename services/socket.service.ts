@@ -1,7 +1,18 @@
 import { io, Socket } from 'socket.io-client';
 import { ChatMessage } from './chat.service';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+// For production (Vercel), use env variable if set, otherwise use relative URL; for local dev, use env variable or localhost
+const getSocketUrl = () => {
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+    return process.env.NEXT_PUBLIC_SOCKET_URL;
+  }
+  if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:5000';
+};
+
+const SOCKET_URL = getSocketUrl();
 
 class SocketService {
   private socket: Socket | null = null;
@@ -18,13 +29,25 @@ class SocketService {
       this.socket.disconnect();
     }
 
+    // Detect if we're on Vercel or production at runtime
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+
+    // Use polling for Vercel/production as it doesn't support persistent WebSocket connections
+    // For local development, try polling first (more reliable), then websocket as fallback
+    const transports = (isProduction || isVercel) ? ['polling'] : ['polling', 'websocket'];
+
+    console.log('Connecting to socket:', SOCKET_URL, 'with transports:', transports);
+
     this.socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: transports,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: this.maxReconnectAttempts,
+      forceNew: false,
+      upgrade: !isVercel && !isProduction, // Don't try to upgrade to websocket on Vercel
     });
 
     this.socket.on('connect', () => {
@@ -44,7 +67,8 @@ class SocketService {
       console.error('Socket connection error:', error);
       this.reconnectAttempts++;
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('Max reconnection attempts reached');
+        console.error('Max reconnection attempts reached. Chat features may not work properly.');
+        console.warn('Note: Vercel serverless functions do not support WebSocket connections. Consider using polling transport or hosting the backend on a platform that supports WebSockets (Railway, Render, etc.).');
       }
     });
 
