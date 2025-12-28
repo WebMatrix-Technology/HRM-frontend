@@ -27,7 +27,7 @@ const navigation = [
   { name: 'Attendance', href: '/attendance', icon: Clock, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Leave', href: '/leave', icon: Calendar, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Payroll', href: '/payroll', icon: DollarSign, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
-  { name: 'Allotments', href: '/allotments', icon: FileCheck, roles: [Role.ADMIN, Role.HR] },
+  { name: 'Payroll Processing', href: '/allotments', icon: FileCheck, roles: [Role.ADMIN, Role.HR] },
   { name: 'Performance', href: '/performance', icon: TrendingUp, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
   { name: 'Recruitment', href: '/recruitment', icon: Briefcase, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
   { name: 'Chat', href: '/chat', icon: MessageSquare, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },

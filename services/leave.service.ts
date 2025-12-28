@@ -38,41 +38,6 @@ export const leaveService = {
     return response.data.data;
   },
 
-  allotLeave: async (employeeId: string, data: {
-    type: Leave['type'];
-    startDate: string;
-    endDate: string;
-    reason: string;
-  }): Promise<Leave> => {
-    // NOTE: Backend currently doesn't support creating leaves for other employees
-    // The applyLeave endpoint always uses the authenticated user's employee ID
-    // Backend needs to be updated to:
-    // 1. Accept employeeId parameter in request body
-    // 2. Check if user is HR/Admin before allowing this
-    // 3. Use the provided employeeId instead of the authenticated user's employee ID
-    
-    // For now, this will fail or create leave for the current user
-    // Backend enum: SICK, CASUAL, EARNED, UNPAID, MATERNITY, PATERNITY
-    const leaveTypeMap: Record<Leave['type'], string> = {
-      'VACATION': 'CASUAL',
-      'SICK': 'SICK',
-      'PERSONAL': 'CASUAL',
-      'MATERNITY': 'MATERNITY',
-      'PATERNITY': 'PATERNITY',
-      'OTHER': 'UNPAID',
-    };
-    
-    // TODO: Backend needs to support this endpoint or modify existing one
-    const response = await api.post('/leave', {
-      leaveType: leaveTypeMap[data.type] || 'CASUAL',
-      startDate: data.startDate,
-      endDate: data.endDate,
-      reason: data.reason,
-      employeeId, // Backend needs to handle this parameter
-    });
-    return response.data.data;
-  },
-
   getLeaves: async (employeeId?: string, status?: Leave['status']): Promise<Leave[]> => {
     const params = new URLSearchParams();
     if (employeeId) params.append('employeeId', employeeId);
