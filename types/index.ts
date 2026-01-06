@@ -51,3 +51,82 @@ export interface RegisterData {
   position?: string;
 }
 
+export enum ProjectStatus {
+  PLANNING = 'PLANNING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  ON_HOLD = 'ON_HOLD',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ProjectPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL',
+}
+
+export interface ProjectMember {
+  id: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+    position?: string;
+  };
+  role: string; // 'MANAGER' | 'DEVELOPER' | 'DESIGNER' | 'TESTER' | 'ANALYST'
+  joinedAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  startDate: string;
+  endDate?: string;
+  deadline?: string;
+  budget?: number;
+  progress: number; // 0-100
+  manager: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  };
+  members: ProjectMember[];
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectData {
+  name: string;
+  description?: string;
+  status?: ProjectStatus;
+  priority?: ProjectPriority;
+  startDate: string;
+  endDate?: string;
+  deadline?: string;
+  budget?: number;
+  managerId: string;
+  memberIds?: string[];
+  tags?: string[];
+}
+
+export interface UpdateProjectData {
+  name?: string;
+  description?: string;
+  status?: ProjectStatus;
+  priority?: ProjectPriority;
+  startDate?: string;
+  endDate?: string;
+  deadline?: string;
+  budget?: number;
+  managerId?: string;
+  progress?: number;
+  tags?: string[];
+}
+

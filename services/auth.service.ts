@@ -25,5 +25,10 @@ export const authService = {
   changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<void> => {
     await api.put('/auth/change-password', data);
   },
+
+  adminChangeUserPassword: async (data: { userId: string; newPassword: string }): Promise<{ message: string; data: any }> => {
+    const response = await api.put('/auth/admin/change-user-password', data);
+    return response.data;
+  },
 };
 

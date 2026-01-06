@@ -16,6 +16,7 @@ import {
   LogOut,
   User,
   FileCheck,
+  Target,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Users', href: '/users', icon: User, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
   { name: 'Employees', href: '/employees', icon: Users, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
+  { name: 'Projects', href: '/projects', icon: Target, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
   { name: 'Attendance', href: '/attendance', icon: Clock, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Leave', href: '/leave', icon: Calendar, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Payroll Processing', href: '/allotments', icon: FileCheck, roles: [Role.ADMIN, Role.HR] },

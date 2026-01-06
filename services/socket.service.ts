@@ -103,9 +103,8 @@ class SocketService {
     const isProduction = process.env.NODE_ENV === 'production';
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 
-    // Use polling for Vercel/production as it doesn't support persistent WebSocket connections
-    // For local development, try polling first (more reliable), then websocket as fallback
-    const transports = (isProduction || isVercel) ? ['polling'] : ['polling', 'websocket'];
+    // Use long-polling only for stability; avoids upgrade errors in some local setups
+    const transports = ['polling'];
 
     console.log('Connecting to socket:', socketUrl, 'with transports:', transports);
 
@@ -117,7 +116,7 @@ class SocketService {
       reconnectionDelayMax: 5000,
       reconnectionAttempts: this.maxReconnectAttempts,
       forceNew: false,
-      upgrade: !isVercel && !isProduction, // Don't try to upgrade to websocket on Vercel
+      upgrade: false, // keep polling-only to avoid premature websocket close errors
       // Suppress error logging for cleaner console
       autoConnect: true,
     });
@@ -139,8 +138,18 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      // Only log after max attempts to reduce console noise
       this.reconnectAttempts++;
+      const message = error?.message || String(error);
+      console.error('Socket connect_error:', message);
+
+      // If auth fails, stop reconnecting but do NOT log the user out.
+      if (message.toLowerCase().includes('authentication error')) {
+        console.warn('Socket authentication failed. Please re-login to refresh token.');
+        this.socket?.disconnect();
+        this.socket = null;
+        return;
+      }
+
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         console.warn('Socket.io connection failed after multiple attempts. Real-time features may not work.');
         // Disable further reconnection attempts
