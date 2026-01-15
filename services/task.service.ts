@@ -61,6 +61,7 @@ export interface UpdateTaskData {
     status?: TaskStatus;
     priority?: TaskPriority;
     storyPoints?: number;
+    projectId?: string;
     assigneeId?: string;
     tags?: string[];
 }
