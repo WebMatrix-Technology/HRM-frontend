@@ -17,6 +17,18 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { projectService } from '@/services/project.service';
+import {
+    DndContext,
+    DragOverlay,
+    useSensor,
+    useSensors,
+    PointerSensor,
+    DragStartEvent,
+    DragEndEvent,
+    closestCorners
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import SortableTaskCard from '@/components/pbi/SortableTaskCard';
 import { taskService, Task, TaskStatus, TaskPriority } from '@/services/task.service';
 import { Project } from '@/types';
 import { useAuthStore } from '@/store/authStore';
@@ -29,6 +41,76 @@ export default function PBIPage() {
     const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
+    const [activeId, setActiveId] = useState<string | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (!over) {
+            setActiveId(null);
+            return;
+        }
+
+        const taskId = active.id as string;
+        const overId = over.id as string;
+
+        // Parse destination from over.id (format: `${projectId}-${status}`)
+        // We expect the droppable container to have id `${projectId}-${status}`
+        // OR if dropping on another task, we need to find that task's container.
+        // simpler: make the COLUMN the droppable zone.
+
+        // Check if we dropped on a column container
+        if (overId.includes('container-')) {
+            // Format: container-${projectId}-${status}
+            const [, projectId, ...statusParts] = overId.split('-');
+            const newStatus = statusParts.join('-') as TaskStatus;
+
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Optimistic update
+            // Only update if status or project changed
+            if (task.status !== newStatus || (typeof task.projectId === 'string' ? task.projectId : task.projectId.id) !== projectId) {
+                const originalTasks = [...tasks];
+
+                setTasks(tasks.map(t =>
+                    t.id === taskId
+                        ? { ...t, status: newStatus, projectId: projectId } as any // casting for optimistic update
+                        : t
+                ));
+
+                try {
+                    await taskService.updateTask(taskId, {
+                        status: newStatus,
+                        projectId: projectId
+                    });
+                } catch (error) {
+                    console.error('Failed to update task:', error);
+                    // Revert
+                    setTasks(originalTasks);
+                }
+            }
+        } else {
+            // Dropped on another task? 
+            // For simple Kanban, let's focus on dropping into the column container.
+            // If sorting implementation is full, we handle task-to-task drop.
+            // For now, let's rely on the column being the main drop target for status change.
+        }
+
+        setActiveId(null);
+    };
 
     // Initialize columns configuration
     const columns = [
