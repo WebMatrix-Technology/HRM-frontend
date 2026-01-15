@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // For production (Vercel), use relative URL so proxy works; for local dev, use env variable.
-const API_URL = process.env.NODE_ENV === 'development' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') : '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '');
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
