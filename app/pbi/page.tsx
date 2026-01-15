@@ -20,12 +20,15 @@ import { projectService } from '@/services/project.service';
 import { taskService, Task, TaskStatus, TaskPriority } from '@/services/task.service';
 import { Project } from '@/types';
 import { useAuthStore } from '@/store/authStore';
+import CreateTaskModal from '@/components/pbi/CreateTaskModal';
 
 export default function PBIPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
     // Initialize columns configuration
     const columns = [
@@ -99,7 +102,13 @@ export default function PBIPage() {
                             Manage product backlog items and track progress across projects
                         </p>
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-medium shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 transition-all">
+                    <button
+                        onClick={() => {
+                            setSelectedProjectId(undefined);
+                            setShowCreateModal(true);
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-medium shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 transition-all"
+                    >
                         <Plus className="w-5 h-5" />
                         Add Item
                     </button>
@@ -212,7 +221,13 @@ export default function PBIPage() {
                                                 ))}
 
                                                 {/* + Add Item placeholder */}
-                                                <button className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/50 w-full">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedProjectId(project.id);
+                                                        setShowCreateModal(true);
+                                                    }}
+                                                    className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/50 w-full"
+                                                >
                                                     <Plus className="w-4 h-4" />
                                                     Add item
                                                 </button>
@@ -225,6 +240,15 @@ export default function PBIPage() {
                     ))
                 )}
             </div>
+
+            <CreateTaskModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onTaskCreated={() => {
+                    fetchData();
+                }}
+                defaultProjectId={selectedProjectId}
+            />
         </DashboardLayout>
     );
 }
