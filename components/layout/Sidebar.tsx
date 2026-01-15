@@ -17,6 +17,7 @@ import {
   User,
   FileCheck,
   Target,
+  ListTodo,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
@@ -26,6 +27,7 @@ const navigation = [
   { name: 'Users', href: '/users', icon: User, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
   { name: 'Employees', href: '/employees', icon: Users, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Projects', href: '/projects', icon: Target, roles: [Role.ADMIN, Role.HR, Role.MANAGER] },
+  { name: 'Product Backlog', href: '/pbi', icon: ListTodo, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Attendance', href: '/attendance', icon: Clock, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Leave', href: '/leave', icon: Calendar, roles: [Role.ADMIN, Role.HR, Role.MANAGER, Role.EMPLOYEE] },
   { name: 'Payroll Processing', href: '/allotments', icon: FileCheck, roles: [Role.ADMIN, Role.HR] },
@@ -95,10 +97,9 @@ export default function Sidebar() {
                       href={item.href}
                       className={`
                         group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200
-                        ${
-                          isActive
-                            ? 'bg-gradient-primary text-white shadow-lg shadow-primary-500/50'
-                            : 'text-cyan-300/80 hover:bg-dark-surface hover:text-cyan-400'
+                        ${isActive
+                          ? 'bg-gradient-primary text-white shadow-lg shadow-primary-500/50'
+                          : 'text-cyan-300/80 hover:bg-dark-surface hover:text-cyan-400'
                         }
                       `}
                     >
