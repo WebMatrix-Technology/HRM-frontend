@@ -85,7 +85,7 @@ export default function SortableTaskCard({ task, index }: SortableTaskCardProps)
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700/50">
                 <div className="flex -space-x-2">
-                    {task.assigneeId ? (
+                    {typeof task.assigneeId === 'object' && task.assigneeId ? (
                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-[10px] text-white font-bold border-2 border-white dark:border-slate-800" title={`${task.assigneeId.firstName} ${task.assigneeId.lastName}`}>
                             {task.assigneeId.firstName?.[0]}{task.assigneeId.lastName?.[0]}
                         </div>
