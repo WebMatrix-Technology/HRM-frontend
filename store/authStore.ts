@@ -90,6 +90,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     authService.logout();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('isDemoMode');
+    }
     set({
       user: null,
       employee: null,

@@ -27,6 +27,11 @@ export default function LoginPage() {
     if (token || isAuthenticated) {
       hasRedirected.current = true;
       router.replace('/dashboard');
+    } else {
+      // Clear demo mode if we are on login page without a token
+      // This prevents the "CanceledError" when trying to login after using demo mode
+      localStorage.removeItem('isDemoMode');
+      useDemoStore.getState().disableDemoMode();
     }
   }, []); // Only run on mount
 
