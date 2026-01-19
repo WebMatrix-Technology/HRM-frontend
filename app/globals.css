@@ -19,7 +19,7 @@
 body {
   @apply bg-dark-bg text-white;
   font-feature-settings: "rlig" 1, "calt" 1;
-  background-image: 
+  background-image:
     radial-gradient(circle at 20% 50%, rgba(138, 43, 226, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
   background-attachment: fixed;
@@ -29,37 +29,34 @@ body {
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .glass {
     @apply bg-dark-surface/80 backdrop-blur-lg border border-dark-border;
   }
-  
+
   .gradient-primary {
     background-image: linear-gradient(135deg, #8A2BE2 0%, #00FFFF 100%);
   }
-  
+
   .gradient-text {
     @apply bg-gradient-to-r from-primary-500 to-cyan-500 bg-clip-text text-transparent;
   }
-  
+
   .matrix-pattern {
-    background-image: 
-      repeating-linear-gradient(
-        0deg,
+    background-image:
+      repeating-linear-gradient(0deg,
         transparent,
         transparent 2px,
         rgba(0, 255, 255, 0.03) 2px,
-        rgba(0, 255, 255, 0.03) 4px
-      ),
-      repeating-linear-gradient(
-        90deg,
+        rgba(0, 255, 255, 0.03) 4px),
+      repeating-linear-gradient(90deg,
         transparent,
         transparent 2px,
         rgba(138, 43, 226, 0.03) 2px,
-        rgba(138, 43, 226, 0.03) 4px
-      );
+        rgba(138, 43, 226, 0.03) 4px);
   }
 
+  /* Custom Scrollbar Class */
   .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -74,3 +71,16 @@ body {
   }
 }
 
+/* Global Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-dark-border rounded-full hover:bg-primary-500/50 border-[3px] border-solid border-transparent bg-clip-content transition-colors;
+}
