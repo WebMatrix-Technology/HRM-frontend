@@ -13,7 +13,43 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
+    // Check for Demo Mode blocking
+    // We import the store dynamically to avoid circular dependencies if possible, 
+    // but direct import is usually fine in Next.js client-side.
+    // However, api.ts might be imported before store initialization. 
+    // Safer to check localStorage for the flag.
+    const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('isDemoMode') === 'true';
+
+    if (isDemoMode) {
+      // Allow GET requests, but block mutations
+      if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+        // Cancel the request
+        const controller = new AbortController();
+        config.signal = controller.signal;
+        controller.abort('Demo Mode: Write operations are simulated.');
+
+        // We need to reject to stop the request, but we want to simulate success.
+        // Axios interceptors dealing with cancellation usually throw. 
+        // Better strategy: Attach a custom property to config and handle in response? 
+        // Or use an adapter.
+
+        // Simplest hack: let it fail but with a specific reason we catch later?
+        // Or just use an adapter for this request.
+        config.adapter = async (config) => {
+          return {
+            data: { status: 'success', message: 'Action simulated (Demo Mode)' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            request: {}
+          };
+        };
+      }
+    }
+
     const token = localStorage.getItem('accessToken');
+    // In demo mode, we might use a fake token, which matches what we set in authStore.
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

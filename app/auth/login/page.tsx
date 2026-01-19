@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, Building2, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth.service';
+import { useDemoStore } from '@/store/demoStore';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function LoginPage() {
   // Redirect if already authenticated (only check once on mount)
   useEffect(() => {
     if (hasRedirected.current) return;
-    
+
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (token || isAuthenticated) {
       hasRedirected.current = true;
@@ -37,16 +38,16 @@ export default function LoginPage() {
     try {
       const response = await authService.login({ email, password });
       console.log('Login response:', response);
-      
+
       if (!response || !response.accessToken) {
         throw new Error('Invalid response from server');
       }
-      
+
       login(response);
-      
+
       // Mark as redirected to prevent useEffect from running
       hasRedirected.current = true;
-      
+
       // Redirect using Next.js router (client-side navigation, no reload)
       // Small delay to ensure localStorage and state are updated
       setTimeout(() => {
@@ -230,6 +231,22 @@ export default function LoginPage() {
                 </>
               )}
             </motion.button>
+
+
+            <motion.button
+              type="button"
+              onClick={() => {
+                useAuthStore.getState().loginDemo();
+                useDemoStore.getState().enableDemoMode();
+                router.push('/dashboard');
+              }}
+              className="w-full mt-4 bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 py-3.5 px-4 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Eye className="w-5 h-5" />
+              <span>Explore as Guest (Demo)</span>
+            </motion.button>
           </form>
         </motion.div>
 
@@ -241,6 +258,6 @@ export default function LoginPage() {
           © 2024 Web Agency HRM System. All rights reserved.
         </motion.p>
       </motion.div>
-    </div>
+    </div >
   );
 }

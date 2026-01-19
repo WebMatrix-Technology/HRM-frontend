@@ -12,6 +12,7 @@ interface AuthState {
 
   // Actions
   login: (response: AuthResponse) => void;
+  loginDemo: () => void;
   logout: () => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
@@ -33,15 +34,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem('refreshToken', response.refreshToken);
       console.log('Tokens saved to localStorage');
     }
-    
+
     // Ensure role is properly typed
     const userData: User = {
       id: response.user.id,
       email: response.user.email,
       role: response.user.role as Role,
-      isActive: true, // Default to true since backend doesn't return it in login response
+      isActive: true,
     };
-    
+
     set({
       user: userData,
       employee: response.employee,
@@ -49,8 +50,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       refreshToken: response.refreshToken,
       isAuthenticated: true,
     });
-    
+
     console.log('Auth state updated, isAuthenticated:', true);
+  },
+
+  loginDemo: () => {
+    // Dummy User Object
+    const dummyUser: User = {
+      id: 'demo-user-id',
+      email: 'demo@hrm.com',
+      role: Role.ADMIN,
+      isActive: true,
+    };
+
+    const dummyEmployee: Employee = {
+      id: 'demo-emp-id',
+      employeeId: 'DEMO001',
+      firstName: 'Demo',
+      lastName: 'User',
+      position: 'System Evaluator',
+      department: 'Evaluation',
+      avatar: undefined // could add a robot avatar URL here
+    };
+
+    set({
+      user: dummyUser,
+      employee: dummyEmployee,
+      accessToken: 'demo-token',
+      refreshToken: 'demo-refresh-token',
+      isAuthenticated: true,
+    });
   },
 
   logout: () => {
