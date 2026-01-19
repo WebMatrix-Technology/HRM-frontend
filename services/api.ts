@@ -21,20 +21,92 @@ api.interceptors.request.use(
     const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('isDemoMode') === 'true';
 
     if (isDemoMode) {
-      // Allow GET requests, but block mutations
+      // Mock /auth/me for user data
+      if (config.method?.toLowerCase() === 'get' && config.url?.endsWith('/auth/me')) {
+        config.adapter = async (config) => {
+          return {
+            data: {
+              status: 'success',
+              data: {
+                id: 'demo-user-id',
+                email: 'demo@hrm.com',
+                role: 'ADMIN',
+                isActive: true,
+                employee: {
+                  id: 'demo-emp-id',
+                  employeeId: 'DEMO001',
+                  firstName: 'Demo',
+                  lastName: 'User',
+                  position: 'System Evaluator',
+                  department: 'Evaluation',
+                  avatar: undefined
+                }
+              }
+            },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            request: {}
+          };
+        };
+      }
+
+      // Mock /reports/employees for dashboard stats
+      if (config.method?.toLowerCase() === 'get' && config.url?.endsWith('/reports/employees')) {
+        config.adapter = async (config) => {
+          return {
+            data: {
+              status: 'success',
+              data: {
+                total: 25,
+                active: 24,
+                inactive: 1,
+                byDepartment: [
+                  { department: 'Engineering', _count: { _all: 12 } },
+                  { department: 'Design', _count: { _all: 5 } },
+                  { department: 'HR', _count: { _all: 3 } },
+                  { department: 'Sales', _count: { _all: 5 } }
+                ],
+                byRole: [
+                  { role: 'EMPLOYEE', _count: { _all: 20 } },
+                  { role: 'MANAGER', _count: { _all: 4 } },
+                  { role: 'ADMIN', _count: { _all: 1 } }
+                ]
+              }
+            },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            request: {}
+          };
+        };
+      }
+
+      // Mock /leave for leave stats
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/leave')) {
+        config.adapter = async (config) => {
+          return {
+            data: {
+              status: 'success',
+              data: [] // Return empty list for now, or could mock some leaves
+            },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            request: {}
+          };
+        };
+      }
+
+      // Block mutations
       if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
-        // Cancel the request
         const controller = new AbortController();
         config.signal = controller.signal;
         controller.abort('Demo Mode: Write operations are simulated.');
 
-        // We need to reject to stop the request, but we want to simulate success.
-        // Axios interceptors dealing with cancellation usually throw. 
-        // Better strategy: Attach a custom property to config and handle in response? 
-        // Or use an adapter.
-
-        // Simplest hack: let it fail but with a specific reason we catch later?
-        // Or just use an adapter for this request.
         config.adapter = async (config) => {
           return {
             data: { status: 'success', message: 'Action simulated (Demo Mode)' },
