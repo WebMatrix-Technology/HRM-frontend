@@ -30,6 +30,7 @@ export default function SortableTaskCard({ task, index }: SortableTaskCardProps)
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
+        touchAction: 'none',
     };
 
     if (isDragging) {

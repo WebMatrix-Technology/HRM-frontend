@@ -22,17 +22,20 @@ import {
     DragOverlay,
     useSensor,
     useSensors,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
+    KeyboardSensor,
     DragStartEvent,
     DragEndEvent,
     closestCorners
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import SortableTaskCard from '@/components/pbi/SortableTaskCard';
 import { taskService, Task, TaskStatus, TaskPriority } from '@/services/task.service';
 import { Project } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import CreateTaskModal from '@/components/pbi/CreateTaskModal';
+import DroppableContainer from '@/components/pbi/DroppableContainer';
 
 export default function PBIPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -44,10 +47,19 @@ export default function PBIPage() {
     const [activeId, setActiveId] = useState<string | null>(null);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 10,
             },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
         })
     );
 
@@ -66,47 +78,69 @@ export default function PBIPage() {
         const taskId = active.id as string;
         const overId = over.id as string;
 
-        // Parse destination from over.id (format: `${projectId}-${status}`)
-        // We expect the droppable container to have id `${projectId}-${status}`
-        // OR if dropping on another task, we need to find that task's container.
-        // simpler: make the COLUMN the droppable zone.
+        let newStatus: TaskStatus | undefined;
+        let newProjectId: string | undefined;
 
         // Check if we dropped on a column container
         if (overId.includes('container-')) {
             // Format: container-${projectId}-${status}
-            const [, projectId, ...statusParts] = overId.split('-');
-            const newStatus = statusParts.join('-') as TaskStatus;
+            const parts = overId.split('-');
+            // handle potential dashes in projectId? Assuming ID is mostly alphanumeric.
+            // Safer parsing: container-PROJECTID-STATUS
+            // But status has dashes? "IN-PROGRESS".
+            // Let's rely on fixed prefix.
+            // container- = 10 chars.
+            // Or better: the ID construction was `container-${project.id}-${column.id}`.
+            // column.id is known enum.
+            // Let's iterate columns to find a match at the end.
 
+            for (const col of columns) {
+                if (overId.endsWith(`-${col.id}`)) {
+                    newStatus = col.id;
+                    // container-PROJECTID-STATUS
+                    // container- is 10 chars.
+                    // suffix is -${col.id}
+                    const prefixLength = 10;
+                    const suffixLength = col.id.length + 1; // +1 for dash
+                    newProjectId = overId.substring(prefixLength, overId.length - suffixLength);
+                    break;
+                }
+            }
+        } else {
+            // Dropped on another task
+            const overTask = tasks.find(t => t._id === overId);
+            if (overTask) {
+                newStatus = overTask.status;
+                newProjectId = (typeof overTask.projectId === 'string' ? overTask.projectId : overTask.projectId.id);
+            }
+        }
+
+        if (newStatus && newProjectId) {
             const task = tasks.find(t => t._id === taskId);
             if (!task) return;
 
             // Optimistic update
-            // Only update if status or project changed
-            if (task.status !== newStatus || (typeof task.projectId === 'string' ? task.projectId : task.projectId.id) !== projectId) { // Check projectId ID
+            const currentProjectId = typeof task.projectId === 'string' ? task.projectId : task.projectId.id;
+
+            if (task.status !== newStatus || currentProjectId !== newProjectId) {
                 const originalTasks = [...tasks];
 
                 setTasks(tasks.map(t =>
                     t._id === taskId
-                        ? { ...t, status: newStatus, projectId: projectId } as any // casting for optimistic update
+                        ? { ...t, status: newStatus!, projectId: newProjectId! } as any
                         : t
                 ));
 
                 try {
                     await taskService.updateTask(taskId, {
                         status: newStatus,
-                        projectId: projectId
+                        projectId: newProjectId
                     });
                 } catch (error) {
                     console.error('Failed to update task:', error);
-                    // Revert
                     setTasks(originalTasks);
                 }
             }
-        } else {
-            // Dropped on another task? 
-            // For simple Kanban, let's focus on dropping into the column container.
-            // If sorting implementation is full, we handle task-to-task drop.
-            // For now, let's rely on the column being the main drop target for status change.
         }
 
         setActiveId(null);
@@ -290,11 +324,14 @@ export default function PBIPage() {
                                                             items={projectTasks.map(t => t._id)}
                                                             strategy={verticalListSortingStrategy}
                                                         >
-                                                            <div className="space-y-3 min-h-[100px]">
+                                                            <DroppableContainer
+                                                                id={`container-${project.id}-${column.id}`}
+                                                                className="space-y-3 min-h-[100px]"
+                                                            >
                                                                 {projectTasks.map((task, index) => (
                                                                     <SortableTaskCard key={task._id} task={task} index={index} />
                                                                 ))}
-                                                            </div>
+                                                            </DroppableContainer>
                                                         </SortableContext>
 
                                                         {/* + Add Item placeholder */}
