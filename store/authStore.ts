@@ -73,6 +73,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       avatar: undefined // could add a robot avatar URL here
     };
 
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', 'demo-token');
+      localStorage.setItem('refreshToken', 'demo-refresh-token');
+      localStorage.setItem('isDemoMode', 'true');
+    }
+
     set({
       user: dummyUser,
       employee: dummyEmployee,

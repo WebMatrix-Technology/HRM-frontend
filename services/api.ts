@@ -141,32 +141,41 @@ api.interceptors.request.use(
               status: 200, statusText: 'OK', headers: {}, config, request: {}
             };
           }
-          // Default /employees list
+
+          const employees = [
+            {
+              id: 'demo-emp-id',
+              employeeId: 'DEMO001',
+              firstName: 'Demo',
+              lastName: 'User',
+              department: 'Engineering',
+              position: 'Software Engineer',
+              isActive: true,
+              email: 'demo@hrm.com'
+            },
+            {
+              id: 'demo-emp-2',
+              employeeId: 'DEMO002',
+              firstName: 'Alice',
+              lastName: 'Smith',
+              department: 'HR',
+              position: 'HR Manager',
+              isActive: true,
+              email: 'alice@hrm.com'
+            }
+          ];
+
+          if (config.url?.match(/\/employees\/[\w-]+$/) && !config.url?.endsWith('/employees')) {
+            return {
+              data: { status: 'success', data: employees[0] },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
           return {
             data: {
               status: 'success',
-              data: [
-                {
-                  id: 'demo-emp-id',
-                  employeeId: 'DEMO001',
-                  firstName: 'Demo',
-                  lastName: 'User',
-                  department: 'Engineering',
-                  position: 'Software Engineer',
-                  isActive: true,
-                  email: 'demo@hrm.com'
-                },
-                {
-                  id: 'demo-emp-2',
-                  employeeId: 'DEMO002',
-                  firstName: 'Alice',
-                  lastName: 'Smith',
-                  department: 'HR',
-                  position: 'HR Manager',
-                  isActive: true,
-                  email: 'alice@hrm.com'
-                }
-              ]
+              data: employees
             },
             status: 200, statusText: 'OK', headers: {}, config, request: {}
           };
@@ -230,23 +239,35 @@ api.interceptors.request.use(
               status: 200, statusText: 'OK', headers: {}, config, request: {}
             };
           }
+
+          const projects = [
+            {
+              id: 'proj-1',
+              name: 'Demo Project Alpha',
+              status: 'IN_PROGRESS',
+              priority: 'HIGH',
+              progress: 75,
+              startDate: new Date().toISOString(),
+              endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
+              description: 'A demo project for testing.',
+              manager: { firstName: 'Demo', lastName: 'Manager' },
+              members: []
+            }
+          ];
+
+          if (config.url?.match(/\/projects\/[\w-]+$/) && !config.url?.endsWith('/projects')) {
+            return {
+              data: { status: 'success', data: projects[0] },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
           // Project list wrapper with pagination structure
           return {
             data: {
               status: 'success',
               data: {
-                projects: [
-                  {
-                    id: 'proj-1',
-                    name: 'Demo Project Alpha',
-                    status: 'IN_PROGRESS',
-                    priority: 'HIGH',
-                    progress: 75,
-                    startDate: new Date().toISOString(),
-                    manager: { firstName: 'Demo', lastName: 'Manager' },
-                    members: []
-                  }
-                ],
+                projects: projects,
                 pagination: {
                   currentPage: 1,
                   totalPages: 1,
@@ -255,6 +276,264 @@ api.interceptors.request.use(
                 }
               }
             },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock /tasks
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/tasks')) {
+        config.adapter = async (config) => {
+          const tasks = [
+            {
+              _id: 'task-1',
+              title: 'Implement Demo Mode',
+              description: 'Add mock data for all modules',
+              status: 'In Progress',
+              priority: 'High',
+              storyPoints: 5,
+              projectId: { _id: 'proj-1', name: 'Demo Project Alpha' },
+              assigneeId: {
+                _id: 'demo-emp-id',
+                firstName: 'Demo',
+                lastName: 'User',
+                avatar: undefined
+              },
+              tags: ['feature', 'urgent'],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            },
+            {
+              _id: 'task-2',
+              title: 'Fix Navigation',
+              description: 'Ensure all links work',
+              status: 'Backlog',
+              priority: 'Medium',
+              storyPoints: 3,
+              projectId: { _id: 'proj-1', name: 'Demo Project Alpha' },
+              assigneeId: {
+                _id: 'demo-emp-2',
+                firstName: 'Alice',
+                lastName: 'Smith'
+              },
+              tags: ['bug'],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ];
+
+          if (config.url?.match(/\/tasks\/[\w-]+$/) && !config.url?.endsWith('/tasks')) {
+            return {
+              data: { status: 'success', data: tasks[0] },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          return {
+            data: { status: 'success', data: tasks },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock /performance
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/performance')) {
+        config.adapter = async (config) => {
+          const performances = [
+            {
+              id: 'perf-1',
+              employeeId: 'demo-emp-id',
+              reviewPeriod: '2023-Q4',
+              rating: 4.5,
+              goals: ['Improve code quality', 'Mentor juniors'],
+              achievements: ['Delivered Project X', 'Reduced bugs by 20%'],
+              feedback: 'Excellent work this quarter.',
+              createdAt: new Date().toISOString(),
+              employee: {
+                id: 'demo-emp-id',
+                firstName: 'Demo',
+                lastName: 'User',
+                employeeId: 'DEMO001'
+              }
+            }
+          ];
+
+          if (config.url?.match(/\/performance\/[\w-]+$/)) {
+            // Get by ID
+            return {
+              data: { status: 'success', data: performances[0] },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          return {
+            data: { status: 'success', data: performances },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock /recruitment
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/recruitment')) {
+        config.adapter = async (config) => {
+          if (config.url?.includes('/jobs')) {
+            const jobs = [
+              {
+                id: 'job-1',
+                title: 'Senior Frontend Developer',
+                department: 'Engineering',
+                position: 'Senior Engineer',
+                description: 'We are looking for a React expert.',
+                requirements: ['5+ years React', 'TypeScript', 'Next.js'],
+                location: 'Remote',
+                employmentType: 'FULL_TIME',
+                status: 'OPEN',
+                postedAt: new Date().toISOString(),
+                applications: []
+              },
+              {
+                id: 'job-2',
+                title: 'UX Designer',
+                department: 'Design',
+                position: 'Designer',
+                description: 'Creative designer needed.',
+                requirements: ['Figma', 'Adobe XD', 'User Research'],
+                location: 'New York',
+                employmentType: 'FULL_TIME',
+                status: 'OPEN',
+                postedAt: new Date().toISOString(),
+                applications: []
+              }
+            ];
+
+            if (config.url?.match(/\/recruitment\/jobs\/[\w-]+$/)) {
+              return {
+                data: { status: 'success', data: jobs[0] },
+                status: 200, statusText: 'OK', headers: {}, config, request: {}
+              };
+            }
+
+            return {
+              data: { status: 'success', data: jobs },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          if (config.url?.includes('/applications')) {
+            return {
+              data: {
+                status: 'success',
+                data: [
+                  {
+                    id: 'app-1',
+                    jobPostingId: 'job-1',
+                    firstName: 'John',
+                    lastName: 'Doe',
+                    email: 'john@example.com',
+                    phone: '123-456-7890',
+                    status: 'PENDING',
+                    appliedAt: new Date().toISOString(),
+                    jobPosting: { title: 'Senior Frontend Developer' }
+                  }
+                ]
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          return {
+            data: { status: 'success', data: [] },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock /chat
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/chat')) {
+        config.adapter = async (config) => {
+          // Conversations
+          if (config.url?.includes('/conversations')) {
+            return {
+              data: {
+                status: 'success',
+                data: [
+                  {
+                    employee: {
+                      id: 'demo-emp-2',
+                      firstName: 'Alice',
+                      lastName: 'Smith',
+                      avatar: undefined,
+                      position: 'HR Manager'
+                    },
+                    lastMessage: {
+                      id: 'msg-1',
+                      message: 'Hey, how is the demo going?',
+                      type: 'text',
+                      createdAt: new Date().toISOString(),
+                      sender: { id: 'demo-emp-2', firstName: 'Alice', lastName: 'Smith' }
+                    },
+                    unreadCount: 1
+                  }
+                ]
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          // Groups
+          if (config.url?.includes('/groups') && !config.url?.includes('/messages')) {
+            return {
+              data: {
+                status: 'success',
+                data: [
+                  {
+                    id: 'group-1',
+                    name: 'General',
+                    description: 'General discussion',
+                    type: 'PUBLIC',
+                    createdBy: 'admin-id',
+                    createdAt: new Date().toISOString(),
+                    members: [],
+                    myRole: 'MEMBER'
+                  }
+                ]
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          // Messages (Direct or Group)
+          if (config.url?.includes('/messages')) {
+            return {
+              data: {
+                status: 'success',
+                data: [
+                  {
+                    id: 'msg-1',
+                    senderId: 'demo-emp-2',
+                    message: 'Welcome to the demo chat!',
+                    type: 'text',
+                    isRead: true,
+                    createdAt: new Date().toISOString(),
+                    sender: { id: 'demo-emp-2', firstName: 'Alice', lastName: 'Smith' }
+                  },
+                  {
+                    id: 'msg-2',
+                    senderId: 'demo-emp-id',
+                    message: 'Thanks! Everything looks great.',
+                    type: 'text',
+                    isRead: true,
+                    createdAt: new Date(Date.now() + 1000).toISOString(),
+                    sender: { id: 'demo-emp-id', firstName: 'Demo', lastName: 'User' }
+                  }
+                ]
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          return {
+            data: { status: 'success', data: [] },
             status: 200, statusText: 'OK', headers: {}, config, request: {}
           };
         };
