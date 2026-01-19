@@ -35,6 +35,25 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+    // Check for demo credentials
+    if (email === 'demo@hrm.com' && password === 'demo123') {
+      try {
+        // Simulate network delay for realistic feel
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        useAuthStore.getState().loginDemo();
+        useDemoStore.getState().enableDemoMode();
+
+        hasRedirected.current = true;
+        router.push('/dashboard');
+        return;
+      } catch (err) {
+        setError('Failed to enter demo mode');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       const response = await authService.login({ email, password });
       console.log('Login response:', response);
@@ -233,21 +252,23 @@ export default function LoginPage() {
             </motion.button>
 
 
-            <motion.button
-              type="button"
-              onClick={() => {
-                useAuthStore.getState().loginDemo();
-                useDemoStore.getState().enableDemoMode();
-                router.push('/dashboard');
-              }}
-              className="w-full mt-4 bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 py-3.5 px-4 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 flex items-center justify-center gap-2"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Eye className="w-5 h-5" />
-              <span>Explore as Guest (Demo)</span>
-            </motion.button>
+            <div className="mt-6 text-center">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Want to explore the platform?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('demo@hrm.com');
+                    setPassword('demo123');
+                  }}
+                  className="text-primary-600 dark:text-primary-400 font-medium hover:underline focus:outline-none"
+                >
+                  Use Demo Account
+                </button>
+              </p>
+            </div>
           </form>
+
         </motion.div>
 
         <motion.p
