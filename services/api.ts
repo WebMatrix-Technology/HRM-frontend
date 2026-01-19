@@ -132,6 +132,116 @@ api.interceptors.request.use(
         };
       }
 
+      // Mock /users
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/users')) {
+        config.adapter = async (config) => {
+          if (config.url?.match(/\/users\/[\w-]+$/)) {
+            // Get user by ID (mock)
+            return {
+              data: {
+                status: 'success',
+                data: {
+                  id: 'demo-user-id',
+                  email: 'demo@hrm.com',
+                  role: 'ADMIN',
+                  isActive: true,
+                  employee: {
+                    id: 'demo-emp-id',
+                    employeeId: 'DEMO001',
+                    firstName: 'Demo',
+                    lastName: 'User',
+                    department: 'Engineering',
+                    position: 'Software Engineer',
+                    avatar: undefined
+                  }
+                }
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+
+          const users = [
+            {
+              id: 'demo-user-id',
+              email: 'demo@hrm.com',
+              role: 'ADMIN',
+              isActive: true,
+              employee: {
+                id: 'demo-emp-id',
+                employeeId: 'DEMO001',
+                firstName: 'Demo',
+                lastName: 'User',
+                department: 'Engineering',
+                position: 'Software Engineer',
+                avatar: undefined
+              }
+            },
+            {
+              id: 'user-2',
+              email: 'alice@hrm.com',
+              role: 'HR',
+              isActive: true,
+              employee: {
+                id: 'demo-emp-2',
+                employeeId: 'DEMO002',
+                firstName: 'Alice',
+                lastName: 'Smith',
+                department: 'HR',
+                position: 'HR Manager',
+                avatar: undefined
+              }
+            },
+            {
+              id: 'user-3',
+              email: 'bob@hrm.com',
+              role: 'MANAGER',
+              isActive: true,
+              employee: {
+                id: 'demo-emp-3',
+                employeeId: 'DEMO003',
+                firstName: 'Bob',
+                lastName: 'Johnson',
+                department: 'Sales',
+                position: 'Sales Manager',
+                avatar: undefined
+              }
+            },
+            {
+              id: 'user-4',
+              email: 'charlie@hrm.com',
+              role: 'EMPLOYEE',
+              isActive: false,
+              employee: {
+                id: 'demo-emp-4',
+                employeeId: 'DEMO004',
+                firstName: 'Charlie',
+                lastName: 'Brown',
+                department: 'Marketing',
+                position: 'Content Writer',
+                avatar: undefined
+              }
+            }
+          ];
+
+          return {
+            data: {
+              status: 'success',
+              data: {
+                users: users,
+                pagination: {
+                  currentPage: 1,
+                  totalPages: 1,
+                  totalCount: users.length,
+                  limit: 20
+                }
+              }
+            },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+
       // Mock /employees
       if (config.method?.toLowerCase() === 'get' && config.url?.includes('/employees')) {
         config.adapter = async (config) => {

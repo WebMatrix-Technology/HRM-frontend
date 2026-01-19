@@ -35,7 +35,7 @@ export const userService = {
     if (filters?.isActive !== undefined) params.append('isActive', filters.isActive.toString());
 
     const response = await api.get(`/users?${params}`);
-    return response.data;
+    return response.data.data;
   },
 
   getUserById: async (id: string): Promise<UserWithEmployee> => {
