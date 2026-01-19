@@ -85,18 +85,177 @@ api.interceptors.request.use(
       }
 
       // Mock /leave for leave stats
-      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/leave')) {
+      if (config.method?.toLowerCase() === 'get' && (config.url?.includes('/leave') || config.url?.includes('/leave?'))) {
         config.adapter = async (config) => {
+          if (config.url?.includes('/balance')) {
+            return {
+              data: {
+                status: 'success',
+                data: {
+                  total: 20,
+                  used: 5,
+                  remaining: 15
+                }
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
           return {
             data: {
               status: 'success',
-              data: [] // Return empty list for now, or could mock some leaves
+              data: [
+                {
+                  id: 'imp-leave-1',
+                  employeeId: 'demo-emp-id',
+                  type: 'VACATION',
+                  startDate: new Date().toISOString(),
+                  endDate: new Date(Date.now() + 86400000).toISOString(),
+                  days: 2,
+                  reason: 'Demo Vacation',
+                  status: 'APPROVED',
+                  createdAt: new Date().toISOString(),
+                  employee: {
+                    id: 'demo-emp-id',
+                    firstName: 'Demo',
+                    lastName: 'User',
+                    employeeId: 'DEMO001'
+                  }
+                }
+              ]
             },
             status: 200,
             statusText: 'OK',
             headers: {},
             config,
             request: {}
+          };
+        };
+      }
+
+      // Mock /employees
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/employees')) {
+        config.adapter = async (config) => {
+          if (config.url?.includes('/departments')) {
+            return {
+              data: { status: 'success', data: ['Engineering', 'HR', 'Sales', 'Marketing', 'Design'] },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+          // Default /employees list
+          return {
+            data: {
+              status: 'success',
+              data: [
+                {
+                  id: 'demo-emp-id',
+                  employeeId: 'DEMO001',
+                  firstName: 'Demo',
+                  lastName: 'User',
+                  department: 'Engineering',
+                  position: 'Software Engineer',
+                  isActive: true,
+                  email: 'demo@hrm.com'
+                },
+                {
+                  id: 'demo-emp-2',
+                  employeeId: 'DEMO002',
+                  firstName: 'Alice',
+                  lastName: 'Smith',
+                  department: 'HR',
+                  position: 'HR Manager',
+                  isActive: true,
+                  email: 'alice@hrm.com'
+                }
+              ]
+            },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock /attendance
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/attendance')) {
+        config.adapter = async (config) => {
+          if (config.url?.includes('/monthly-report')) {
+            return {
+              data: {
+                status: 'success',
+                data: {
+                  totalDays: 20,
+                  presentDays: 18,
+                  absentDays: 1,
+                  lateDays: 1,
+                  workFromHomeDays: 2,
+                  attendance: []
+                }
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+          return {
+            data: {
+              status: 'success',
+              data: [
+                {
+                  id: 'att-1',
+                  info: 'Demo Attendance',
+                  status: 'PRESENT',
+                  date: new Date().toISOString(),
+                  punchIn: new Date().toISOString(),
+                  punchOut: new Date().toISOString()
+                }
+              ]
+            },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock /projects
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/projects')) {
+        config.adapter = async (config) => {
+          if (config.url?.includes('/stats')) {
+            return {
+              data: {
+                status: 'success',
+                data: {
+                  totalProjects: 5,
+                  activeProjects: 3,
+                  completedProjects: 2,
+                  overduedProjects: 0,
+                  projectsByStatus: { 'IN_PROGRESS': 3, 'COMPLETED': 2 },
+                  projectsByPriority: { 'HIGH': 2, 'MEDIUM': 3 }
+                }
+              },
+              status: 200, statusText: 'OK', headers: {}, config, request: {}
+            };
+          }
+          // Project list wrapper with pagination structure
+          return {
+            data: {
+              status: 'success',
+              data: {
+                projects: [
+                  {
+                    id: 'proj-1',
+                    name: 'Demo Project Alpha',
+                    status: 'IN_PROGRESS',
+                    priority: 'HIGH',
+                    progress: 75,
+                    startDate: new Date().toISOString(),
+                    manager: { firstName: 'Demo', lastName: 'Manager' },
+                    members: []
+                  }
+                ],
+                pagination: {
+                  currentPage: 1,
+                  totalPages: 1,
+                  totalCount: 1,
+                  limit: 20
+                }
+              }
+            },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
           };
         };
       }
