@@ -59,5 +59,18 @@ body {
         rgba(138, 43, 226, 0.03) 4px
       );
   }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-dark-border rounded-full hover:bg-primary-500/50 transition-colors;
+  }
 }
 
