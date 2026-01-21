@@ -22,11 +22,24 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { employeeService, Employee, UpdateEmployeeData } from '@/services/employee.service';
 
+const DEFAULT_DEPARTMENTS = [
+  'Engineering',
+  'Human Resources',
+  'Sales',
+  'Marketing',
+  'Product',
+  'Design',
+  'Finance',
+  'Operations',
+  'Customer Support',
+  'Legal',
+];
+
 export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = params.id as string;
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [error, setError] = useState('');
@@ -59,7 +72,7 @@ export default function EditEmployeePage() {
     try {
       setLoadingEmployee(true);
       const employee = await employeeService.getEmployeeById(employeeId);
-      
+
       // Check if employee is an admin - admins cannot be edited
       if (employee.user?.role === 'ADMIN') {
         setError('Admin users cannot be edited');
@@ -68,9 +81,9 @@ export default function EditEmployeePage() {
         }, 2000);
         return;
       }
-      
+
       // Format dateOfBirth for input field (YYYY-MM-DD)
-      const dateOfBirth = employee.dateOfBirth 
+      const dateOfBirth = employee.dateOfBirth
         ? new Date(employee.dateOfBirth).toISOString().split('T')[0]
         : '';
 
@@ -101,9 +114,13 @@ export default function EditEmployeePage() {
   const loadDepartments = async () => {
     try {
       const data = await employeeService.getDepartments();
-      setDepartments(data);
+      // Merge unique departments from API and defaults
+      const mergedDepartments = Array.from(new Set([...DEFAULT_DEPARTMENTS, ...data])).sort();
+      setDepartments(mergedDepartments);
     } catch (error) {
       console.error('Failed to load departments:', error);
+      // Fallback to default departments on error
+      setDepartments(DEFAULT_DEPARTMENTS.sort());
     }
   };
 
@@ -111,8 +128,8 @@ export default function EditEmployeePage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'salary' ? (value ? parseFloat(value) : undefined) : 
-              name === 'isActive' ? (e.target as HTMLInputElement).checked : value,
+      [name]: name === 'salary' ? (value ? parseFloat(value) : undefined) :
+        name === 'isActive' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 

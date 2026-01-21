@@ -27,6 +27,19 @@ import { employeeService, CreateEmployeeData } from '@/services/employee.service
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
 
+const DEFAULT_DEPARTMENTS = [
+  'Engineering',
+  'Human Resources',
+  'Sales',
+  'Marketing',
+  'Product',
+  'Design',
+  'Finance',
+  'Operations',
+  'Customer Support',
+  'Legal',
+];
+
 export default function AddEmployeePage() {
   const router = useRouter();
   const { user: currentUser, isAuthenticated } = useAuthStore();
@@ -34,7 +47,7 @@ export default function AddEmployeePage() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
-  
+
   // Access control: Only HR and Manager can add employees
   const isHR = currentUser?.role === Role.HR;
   const isManager = currentUser?.role === Role.MANAGER;
@@ -64,7 +77,7 @@ export default function AddEmployeePage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -72,7 +85,7 @@ export default function AddEmployeePage() {
 
     loadDepartments();
   }, [isAuthenticated, canAccess, router]);
-  
+
   if (!canAccess) {
     return null;
   }
@@ -80,9 +93,13 @@ export default function AddEmployeePage() {
   const loadDepartments = async () => {
     try {
       const data = await employeeService.getDepartments();
-      setDepartments(data);
+      // Merge unique departments from API and defaults
+      const mergedDepartments = Array.from(new Set([...DEFAULT_DEPARTMENTS, ...data])).sort();
+      setDepartments(mergedDepartments);
     } catch (error) {
       console.error('Failed to load departments:', error);
+      // Fallback to default departments on error
+      setDepartments(DEFAULT_DEPARTMENTS.sort());
     }
   };
 
