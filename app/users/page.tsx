@@ -3,98 +3,107 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { userService, UserWithEmployee } from '@/services/user.service';
+import { Employee, employeeService } from '@/services/employee.service';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 import {
-  User,
+  Users,
+  Plus,
   Search,
+  Filter,
   Mail,
-  Shield,
+  Building2,
+  Briefcase,
   UserCheck,
   UserX,
+  Eye,
+  Edit,
+  MoreVertical,
+  Download,
   Trash2,
 } from 'lucide-react';
-import { Role } from '@/types';
-import { useAuthStore } from '@/store/authStore';
+import Link from 'next/link';
 
 export default function UsersPage() {
   const router = useRouter();
-  const { user: currentUser } = useAuthStore();
-  const [users, setUsers] = useState<UserWithEmployee[]>([]);
+  const { user: currentUser, isAuthenticated } = useAuthStore();
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [departments, setDepartments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const isAdmin = currentUser?.role === Role.ADMIN;
+  const isHR = currentUser?.role === Role.HR;
+  const isManager = currentUser?.role === Role.MANAGER;
+  const canAccess = isAdmin || isHR || isManager;
+  const canAddEmployee = isHR || isManager || isAdmin; // HR, Manager, and Admin can add employees
 
   useEffect(() => {
-    loadUsers();
-  }, [page, roleFilter, statusFilter]);
+    if (!isAuthenticated) return;
 
-  const loadUsers = async () => {
+    if (!canAccess) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    loadEmployees();
+    loadDepartments();
+  }, [isAuthenticated, canAccess, router, page, departmentFilter, statusFilter]);
+
+  if (!canAccess) {
+    return null;
+  }
+
+  const loadEmployees = async () => {
     try {
       setLoading(true);
-      const result = await userService.getUsers(page, 20, {
-        role: roleFilter || undefined,
+      const result = await employeeService.getEmployees(page, 20, {
+        department: departmentFilter || undefined,
         isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
       });
-      setUsers(result.users);
+      setEmployees(result.employees);
       setTotalPages(result.pagination.totalPages);
     } catch (error) {
-      console.error('Failed to load users:', error);
+      console.error('Failed to load employees:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  const loadDepartments = async () => {
+    try {
+      const data = await employeeService.getDepartments();
+      setDepartments(data);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    }
+  };
+
+  const handleDelete = async (employeeId: string, employeeName: string) => {
+    if (!confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      await userService.deleteUser(userId);
-      loadUsers();
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-      alert('Failed to delete user. Please try again.');
+      await employeeService.deleteEmployee(employeeId);
+      loadEmployees();
+    } catch (error: any) {
+      console.error('Failed to delete employee:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to delete employee. Please try again.';
+      alert(errorMessage);
     }
   };
 
-  const handleToggleActive = async (user: UserWithEmployee) => {
-    try {
-      await userService.updateUser(user.id, { isActive: !user.isActive });
-      loadUsers();
-    } catch (error) {
-      console.error('Failed to update user:', error);
-      alert('Failed to update user. Please try again.');
-    }
-  };
-
-  const filteredUsers = users.filter((u) => {
-    const email = u.email.toLowerCase();
-    const employeeName = u.employee
-      ? `${u.employee.firstName} ${u.employee.lastName}`.toLowerCase()
-      : '';
+  const filteredEmployees = employees.filter((emp) => {
+    const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+    const email = emp.user?.email?.toLowerCase() || '';
     const query = searchQuery.toLowerCase();
-    return email.includes(query) || employeeName.includes(query);
+    return fullName.includes(query) || email.includes(query) || emp.employeeId.toLowerCase().includes(query);
   });
-
-  const getRoleBadgeColor = (role: Role) => {
-    switch (role) {
-      case Role.ADMIN:
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case Role.HR:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case Role.MANAGER:
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case Role.EMPLOYEE:
-        return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-    }
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -118,7 +127,7 @@ export default function UsersPage() {
     },
   };
 
-  if (loading && users.length === 0) {
+  if (loading && employees.length === 0) {
     return (
       <DashboardLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -131,8 +140,6 @@ export default function UsersPage() {
       </DashboardLayout>
     );
   }
-
-  const isAdmin = currentUser?.role === Role.ADMIN;
 
   return (
     <DashboardLayout>
@@ -147,14 +154,23 @@ export default function UsersPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               Users
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Manage system users and their access
+              Manage and view all employee information
             </p>
           </div>
+          {canAddEmployee && (
+            <Link
+              href="/users/new"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg hover:shadow-xl"
+            >
+              <Plus className="w-5 h-5" />
+              Add Employee
+            </Link>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -165,13 +181,13 @@ export default function UsersPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Users</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Total Employees</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                  {users.length}
+                  {employees.length}
                 </p>
               </div>
               <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </motion.div>
@@ -184,7 +200,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Active</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  {users.filter((u) => u.isActive).length}
+                  {employees.filter((e) => e.isActive).length}
                 </p>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
@@ -201,7 +217,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Inactive</p>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-                  {users.filter((u) => !u.isActive).length}
+                  {employees.filter((e) => !e.isActive).length}
                 </p>
               </div>
               <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -216,13 +232,13 @@ export default function UsersPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Admins</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                  {users.filter((u) => u.role === Role.ADMIN).length}
+                <p className="text-sm text-slate-600 dark:text-slate-400">Departments</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+                  {departments.length}
                 </p>
               </div>
               <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </motion.div>
@@ -238,25 +254,26 @@ export default function UsersPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search users by email or name..."
+                placeholder="Search employees..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <select
-              value={roleFilter}
+              value={departmentFilter}
               onChange={(e) => {
-                setRoleFilter(e.target.value);
+                setDepartmentFilter(e.target.value);
                 setPage(1);
               }}
               className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">All Roles</option>
-              <option value="ADMIN">Admin</option>
-              <option value="HR">HR</option>
-              <option value="MANAGER">Manager</option>
-              <option value="EMPLOYEE">Employee</option>
+              <option value="">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
             </select>
             <select
               value={statusFilter}
@@ -273,139 +290,108 @@ export default function UsersPage() {
           </div>
         </motion.div>
 
-        {/* Users Table */}
-        {filteredUsers.length === 0 ? (
+        {/* Employees Grid */}
+        {filteredEmployees.length === 0 ? (
           <motion.div
             variants={itemVariants}
             className="bg-white dark:bg-slate-800 rounded-xl p-12 shadow-lg border border-slate-200 dark:border-slate-700 text-center"
           >
-            <User className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+            <Users className="w-16 h-16 text-slate-400 mx-auto mb-4" />
             <p className="text-lg font-semibold text-slate-900 dark:text-white">
-              No users found
+              No employees found
             </p>
             <p className="text-slate-600 dark:text-slate-400 mt-2">
-              {searchQuery ? 'Try adjusting your search criteria' : 'No users in the system'}
+              {searchQuery ? 'Try adjusting your search criteria' : 'Get started by adding your first employee'}
             </p>
           </motion.div>
         ) : (
-          <motion.div
-            variants={itemVariants}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-700/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Role
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Employee Info
-                    </th>
-                    {isAdmin && (
-                      <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                  {filteredUsers.map((user) => (
-                    <motion.tr
-                      key={user.id}
-                      variants={itemVariants}
-                      whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEmployees.map((employee, index) => (
+              <motion.div
+                key={employee.id || employee.employeeId || `employee-${index}`}
+                variants={itemVariants}
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 hover:shadow-2xl transition-all"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      {employee.firstName[0]}{employee.lastName[0]}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                        {employee.firstName} {employee.lastName}
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {employee.employeeId}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${employee.isActive
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      }`}
+                  >
+                    {employee.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <Mail className="w-4 h-4" />
+                    <span className="truncate">{employee.user?.email || '-'}</span>
+                  </div>
+                  {employee.department && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Building2 className="w-4 h-4" />
+                      <span>{employee.department}</span>
+                    </div>
+                  )}
+                  {employee.position && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Briefcase className="w-4 h-4" />
+                      <span>{employee.position}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className={`grid gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 ${employee.user?.role === 'ADMIN'
+                    ? 'grid-cols-1'
+                    : isAdmin && employee.user?.role !== 'ADMIN'
+                      ? 'grid-cols-3'
+                      : 'grid-cols-2'
+                  }`}>
+                  <Link
+                    href={`/users/${employee.id}`}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View
+                  </Link>
+                  {employee.user?.role !== 'ADMIN' && (
+                    <Link
+                      href={`/users/${employee.id}/edit`}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                            {user.employee
-                              ? `${user.employee.firstName[0]}${user.employee.lastName[0]}`
-                              : user.email[0].toUpperCase()}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-slate-400" />
-                              {user.email}
-                            </div>
-                            {user.employee && (
-                              <div className="text-sm text-slate-500 dark:text-slate-400">
-                                {user.employee.firstName} {user.employee.lastName}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                            user.role
-                          )}`}
-                        >
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => isAdmin && handleToggleActive(user)}
-                          disabled={!isAdmin}
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${user.isActive
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                            } ${!isAdmin ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
-                        >
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4">
-                        {user.employee ? (
-                          <div className="text-sm text-slate-600 dark:text-slate-400">
-                            <div>{user.employee.department || 'N/A'}</div>
-                            <div className="text-xs text-slate-500 dark:text-slate-500">
-                              {user.employee.position || 'N/A'}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-slate-400">No employee record</span>
-                        )}
-                      </td>
-                      {isAdmin && (
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleToggleActive(user)}
-                              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                              title="Toggle Active Status"
-                            >
-                              {user.isActive ? (
-                                <UserX className="w-4 h-4" />
-                              ) : (
-                                <UserCheck className="w-4 h-4" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(user.id)}
-                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              title="Delete User"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </Link>
+                  )}
+                  {isAdmin && employee.user?.role !== 'ADMIN' && (
+                    <button
+                      onClick={() => handleDelete(employee.id, `${employee.firstName} ${employee.lastName}`)}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                      title="Delete Employee"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
         )}
 
         {/* Pagination */}
