@@ -558,6 +558,66 @@ api.interceptors.request.use(
         };
       }
 
+      // Mock /notifications
+      if (config.method?.toLowerCase() === 'get' && config.url?.includes('/notifications')) {
+        config.adapter = async (config) => {
+          return {
+            data: {
+              status: 'success',
+              data: {
+                notifications: [
+                  {
+                    _id: 'notif-1',
+                    title: 'Welcome to Demo Mode',
+                    message: 'You are exploring the application in demo mode. Some features are simulated.',
+                    type: 'info',
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                  },
+                  {
+                    _id: 'notif-2',
+                    title: 'New Task Assigned',
+                    message: 'You have been assigned to "Implement Demo Mode".',
+                    type: 'success',
+                    isRead: true,
+                    link: '/tasks',
+                    createdAt: new Date(Date.now() - 86400000).toISOString()
+                  }
+                ],
+                unreadCount: 1,
+                pagination: {
+                  page: 1,
+                  limit: 10,
+                  total: 2,
+                  totalPages: 1
+                }
+              }
+            },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock mark as read
+      if (config.method?.toLowerCase() === 'put' && config.url?.includes('/notifications') && config.url?.includes('/read')) {
+        config.adapter = async (config) => {
+          return {
+            data: { status: 'success', message: 'Notification marked as read' },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
+      // Mock delete notification
+      if (config.method?.toLowerCase() === 'delete' && config.url?.includes('/notifications')) {
+        config.adapter = async (config) => {
+          return {
+            data: { status: 'success', message: 'Notification deleted' },
+            status: 200, statusText: 'OK', headers: {}, config, request: {}
+          };
+        };
+      }
+
       // Mock /chat
       if (config.method?.toLowerCase() === 'get' && config.url?.includes('/chat')) {
         config.adapter = async (config) => {
