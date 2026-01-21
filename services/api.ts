@@ -563,34 +563,31 @@ api.interceptors.request.use(
         config.adapter = async (config) => {
           return {
             data: {
-              status: 'success',
-              data: {
-                notifications: [
-                  {
-                    _id: 'notif-1',
-                    title: 'Welcome to Demo Mode',
-                    message: 'You are exploring the application in demo mode. Some features are simulated.',
-                    type: 'info',
-                    isRead: false,
-                    createdAt: new Date().toISOString()
-                  },
-                  {
-                    _id: 'notif-2',
-                    title: 'New Task Assigned',
-                    message: 'You have been assigned to "Implement Demo Mode".',
-                    type: 'success',
-                    isRead: true,
-                    link: '/tasks',
-                    createdAt: new Date(Date.now() - 86400000).toISOString()
-                  }
-                ],
-                unreadCount: 1,
-                pagination: {
-                  page: 1,
-                  limit: 10,
-                  total: 2,
-                  totalPages: 1
+              notifications: [
+                {
+                  _id: 'notif-1',
+                  title: 'Welcome to Demo Mode',
+                  message: 'You are exploring the application in demo mode. Some features are simulated.',
+                  type: 'info',
+                  isRead: false,
+                  createdAt: new Date().toISOString()
+                },
+                {
+                  _id: 'notif-2',
+                  title: 'New Task Assigned',
+                  message: 'You have been assigned to "Implement Demo Mode".',
+                  type: 'success',
+                  isRead: true,
+                  link: '/tasks',
+                  createdAt: new Date(Date.now() - 86400000).toISOString()
                 }
+              ],
+              unreadCount: 1,
+              pagination: {
+                page: 1,
+                limit: 10,
+                total: 2,
+                totalPages: 1
               }
             },
             status: 200, statusText: 'OK', headers: {}, config, request: {}
