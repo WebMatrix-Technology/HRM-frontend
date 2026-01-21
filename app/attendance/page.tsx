@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Check,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
@@ -155,14 +156,18 @@ export default function AttendancePage() {
             <div className="flex flex-col gap-3">
               {canPunchIn && (
                 <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={workFromHome}
-                      onChange={(e) => setWorkFromHome(e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    Work from home
+                  <label className="flex items-center gap-3 cursor-pointer group select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={workFromHome}
+                        onChange={(e) => setWorkFromHome(e.target.checked)}
+                        className="peer sr-only"
+                      />
+                      <div className="w-6 h-6 border-2 border-white/60 rounded-lg peer-checked:bg-white peer-checked:border-white transition-all group-hover:border-white"></div>
+                      <Check className="w-4 h-4 text-green-600 absolute left-1 top-1 opacity-0 peer-checked:opacity-100 transition-opacity" />
+                    </div>
+                    <span className="font-medium text-white/90 group-hover:text-white transition-colors">Work from home</span>
                   </label>
                   <button
                     onClick={handlePunchIn}
