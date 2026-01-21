@@ -23,6 +23,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { employeeService, Employee, UpdateEmployeeData } from '@/services/employee.service';
 
 const DEFAULT_DEPARTMENTS = [
+  'Administration',
   'Engineering',
   'Human Resources',
   'Sales',

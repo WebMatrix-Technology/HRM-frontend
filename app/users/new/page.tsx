@@ -28,6 +28,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
 
 const DEFAULT_DEPARTMENTS = [
+  'Administration',
   'Engineering',
   'Human Resources',
   'Sales',
