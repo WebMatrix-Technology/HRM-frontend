@@ -284,8 +284,13 @@ api.interceptors.request.use(
 
           return {
             data: {
-              status: 'success',
-              data: employees
+              employees: employees,
+              pagination: {
+                page: 1,
+                limit: 20,
+                total: employees.length,
+                totalPages: 1
+              }
             },
             status: 200, statusText: 'OK', headers: {}, config, request: {}
           };
