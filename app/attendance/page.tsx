@@ -156,19 +156,15 @@ export default function AttendancePage() {
             <div className="flex flex-col gap-3">
               {canPunchIn && (
                 <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-3 cursor-pointer group select-none">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={workFromHome}
-                        onChange={(e) => setWorkFromHome(e.target.checked)}
-                        className="peer sr-only"
-                      />
-                      <div className="w-6 h-6 border-2 border-white/60 rounded-lg peer-checked:bg-white peer-checked:border-white transition-all group-hover:border-white"></div>
-                      <Check className="w-4 h-4 text-green-600 absolute left-1 top-1 opacity-0 peer-checked:opacity-100 transition-opacity" />
+                  <div
+                    onClick={() => setWorkFromHome(!workFromHome)}
+                    className="flex items-center gap-3 cursor-pointer group select-none bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all border border-white/20 backdrop-blur-sm shadow-sm hover:shadow-md"
+                  >
+                    <div className={`w-11 h-6 rounded-full relative transition-colors duration-300 ease-in-out ${workFromHome ? 'bg-white' : 'bg-black/20'}`}>
+                      <div className={`absolute top-1 left-1 w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ease-out ${workFromHome ? 'bg-green-600 translate-x-5' : 'bg-white'}`} />
                     </div>
-                    <span className="font-medium text-white/90 group-hover:text-white transition-colors">Work from home</span>
-                  </label>
+                    <span className="font-semibold text-white tracking-wide">Work from home</span>
+                  </div>
                   <button
                     onClick={handlePunchIn}
                     className="px-6 py-3 bg-white text-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors shadow-lg"
