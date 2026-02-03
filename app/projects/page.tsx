@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Briefcase,
   Plus,
   Search,
@@ -56,7 +56,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -429,9 +429,8 @@ export default function ProjectsPage() {
                     <span>{project.members.length} members</span>
                   </div>
                   {project.deadline && (
-                    <div className={`flex items-center gap-2 text-sm ${
-                      isOverdue(project.deadline) ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'
-                    }`}>
+                    <div className={`flex items-center gap-2 text-sm ${isOverdue(project.deadline) ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'
+                      }`}>
                       <Clock className="w-4 h-4" />
                       <span>
                         Due {formatDate(project.deadline)}
@@ -451,28 +450,28 @@ export default function ProjectsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {project.manager.firstName[0]}{project.manager.lastName[0]}
+                      {project.manager?.firstName?.[0] || '?'}{project.manager?.lastName?.[0] || '?'}
                     </div>
                     <div className="text-sm">
                       <p className="text-slate-900 dark:text-white font-medium">
-                        {project.manager.firstName} {project.manager.lastName}
+                        {project.manager?.firstName || 'Unknown'} {project.manager?.lastName || 'Manager'}
                       </p>
                       <p className="text-slate-500 dark:text-slate-400">Manager</p>
                     </div>
                   </div>
                   <div className="flex -space-x-2">
-                    {project.members.slice(0, 3).map((member, idx) => (
+                    {(Array.isArray(project.members) ? project.members : []).slice(0, 3).map((member, idx) => (
                       <div
-                        key={member.id}
+                        key={member.id || idx}
                         className="w-8 h-8 bg-slate-100 dark:bg-slate-700 border-2 border-white dark:border-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs"
-                        title={`${member.employee.firstName} ${member.employee.lastName}`}
+                        title={member.employee ? `${member.employee.firstName} ${member.employee.lastName}` : 'Member'}
                       >
-                        {member.employee.firstName[0]}{member.employee.lastName[0]}
+                        {member.employee?.firstName?.[0] || '?'}{member.employee?.lastName?.[0] || '?'}
                       </div>
                     ))}
-                    {project.members.length > 3 && (
+                    {(Array.isArray(project.members) ? project.members : []).length > 3 && (
                       <div className="w-8 h-8 bg-slate-200 dark:bg-slate-600 border-2 border-white dark:border-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs">
-                        +{project.members.length - 3}
+                        +{(Array.isArray(project.members) ? project.members : []).length - 3}
                       </div>
                     )}
                   </div>
