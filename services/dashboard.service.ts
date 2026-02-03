@@ -26,7 +26,16 @@ export const dashboardService = {
   getEmployeeStats: async (): Promise<EmployeeStats> => {
     try {
       const response = await api.get('/reports/employees');
-      return response.data.data;
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      return {
+        total: 0,
+        active: 0,
+        inactive: 0,
+        byDepartment: [],
+        byRole: [],
+      };
     } catch (error: any) {
       // If 403 (forbidden), user doesn't have access - return defaults
       if (error.response?.status === 403) {
@@ -54,7 +63,7 @@ export const dashboardService = {
         return employeeStats.active;
       }
       const stats = await dashboardService.getEmployeeStats();
-      return stats.active;
+      return stats?.active || 0;
     } catch (error) {
       console.error('Failed to fetch today attendance:', error);
       return 0;
@@ -100,9 +109,9 @@ export const dashboardService = {
       ]);
 
       return {
-        totalEmployees: employeeStats.total || 0,
-        activeEmployees: employeeStats.active || 0,
-        inactiveEmployees: employeeStats.inactive || 0,
+        totalEmployees: employeeStats?.total || 0,
+        activeEmployees: employeeStats?.active || 0,
+        inactiveEmployees: employeeStats?.inactive || 0,
         activeToday,
         onLeave,
         pendingRequests,
