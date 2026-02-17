@@ -111,7 +111,11 @@ export default function PBIPage() {
             const overTask = tasks.find(t => t._id === overId);
             if (overTask) {
                 newStatus = overTask.status;
-                newProjectId = (typeof overTask.projectId === 'string' ? overTask.projectId : overTask.projectId.id);
+                if (overTask.projectId) {
+                    newProjectId = typeof overTask.projectId === 'string'
+                        ? overTask.projectId
+                        : (overTask.projectId as any)._id || (overTask.projectId as any).id;
+                }
             }
         }
 
@@ -120,7 +124,11 @@ export default function PBIPage() {
             if (!task) return;
 
             // Optimistic update
-            const currentProjectId = typeof task.projectId === 'string' ? task.projectId : task.projectId.id;
+            const currentProjectId = task.projectId
+                ? (typeof task.projectId === 'string'
+                    ? task.projectId
+                    : (task.projectId as any)._id || (task.projectId as any).id)
+                : undefined;
 
             if (task.status !== newStatus || currentProjectId !== newProjectId) {
                 const originalTasks = [...tasks];
@@ -186,10 +194,13 @@ export default function PBIPage() {
     };
 
     const getTasksByProjectAndStatus = (projectId: string, status: TaskStatus) => {
-        return tasks.filter(t =>
-            (typeof t.projectId === 'string' ? t.projectId : t.projectId.id) === projectId &&
-            t.status === status
-        );
+        return tasks.filter(t => {
+            if (!t.projectId) return false;
+            const tProjectId = typeof t.projectId === 'string'
+                ? t.projectId
+                : (t.projectId as any)._id || (t.projectId as any).id;
+            return tProjectId === projectId && t.status === status;
+        });
     };
 
     const getPriorityColor = (priority: TaskPriority) => {
@@ -290,7 +301,13 @@ export default function PBIPage() {
                                     )}
                                     <h3 className="font-bold text-slate-900 dark:text-white">{project.name}</h3>
                                     <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full text-xs text-slate-600 dark:text-slate-300">
-                                        {tasks.filter(t => (typeof t.projectId === 'string' ? t.projectId : t.projectId.id) === project.id).length}
+                                        {tasks.filter(t => {
+                                            if (!t.projectId) return false;
+                                            const tProjectId = typeof t.projectId === 'string'
+                                                ? t.projectId
+                                                : (t.projectId as any)._id || (t.projectId as any).id;
+                                            return tProjectId === project.id;
+                                        }).length}
                                     </span>
                                     <span className="text-xs text-slate-500">Estimate: 0</span>
                                     <MoreHorizontal className="w-4 h-4 text-slate-500 ml-auto" />

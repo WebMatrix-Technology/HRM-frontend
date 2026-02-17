@@ -1,8 +1,10 @@
 export enum Role {
   ADMIN = 'ADMIN',
-  HR = 'HR',
-  MANAGER = 'MANAGER',
+  HR = 'HR', // @deprecated - use HR_MANAGER
+  MANAGER = 'MANAGER', // @deprecated - use HR_MANAGER
   EMPLOYEE = 'EMPLOYEE',
+  HR_MANAGER = 'HR_MANAGER',
+  CLERK = 'CLERK',
 }
 
 export interface User {
