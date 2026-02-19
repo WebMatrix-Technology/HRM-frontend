@@ -49,11 +49,10 @@ export default function AddEmployeePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
 
-  // Access control: Only HR and Manager can add employees
-  const isHR = currentUser?.role === Role.HR;
-  const isManager = currentUser?.role === Role.MANAGER;
+  // Access control: Only HR Manager and Admin can add employees
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const canAccess = isHR || isManager || isAdmin;
+  const canAccess = isHRManager || isAdmin;
 
   // Form fields
   const [formData, setFormData] = useState<CreateEmployeeData>({
@@ -293,10 +292,8 @@ export default function AddEmployeePage() {
                     onChange={handleChange}
                   >
                     <option value="EMPLOYEE">Employee</option>
-                    {/* HR can only add employees, Manager can add HR and employees */}
-                    {!isHR && <option value="HR">HR</option>}
-                    {/* Only Admin can add Manager and Admin */}
-                    {isAdmin && <option value="MANAGER">Manager</option>}
+                    {isAdmin && <option value="HR_MANAGER">HR Manager</option>}
+                    {isAdmin && <option value="CLERK">Clerk</option>}
                     {isAdmin && <option value="ADMIN">Admin</option>}
                   </select>
                 </div>
@@ -633,5 +630,3 @@ export default function AddEmployeePage() {
     </DashboardLayout>
   );
 }
-
-

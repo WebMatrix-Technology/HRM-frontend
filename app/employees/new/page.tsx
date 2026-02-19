@@ -255,8 +255,8 @@ export default function AddEmployeePage() {
                     onChange={handleChange}
                   >
                     <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="HR">HR</option>
+                    <option value="HR_MANAGER">HR Manager</option>
+                    <option value="CLERK">Clerk</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>

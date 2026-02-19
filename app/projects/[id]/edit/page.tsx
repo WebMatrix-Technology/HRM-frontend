@@ -19,7 +19,7 @@ export default function EditProjectPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<UpdateProjectData>({
     name: '',
     description: '',
@@ -40,9 +40,8 @@ export default function EditProjectPage() {
 
   const projectId = params.id as string;
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHR = currentUser?.role === Role.HR;
-  const isManager = currentUser?.role === Role.MANAGER;
-  const canAccess = isAdmin || isHR || isManager;
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
+  const canAccess = isAdmin || isHRManager;
 
   useEffect(() => {
     if (!canAccess) {
@@ -59,7 +58,7 @@ export default function EditProjectPage() {
       setLoading(true);
       const projectData = await projectService.getProject(projectId);
       setProject(projectData);
-      
+
       // Populate form with existing data
       setFormData({
         name: projectData.name,
@@ -73,7 +72,7 @@ export default function EditProjectPage() {
         managerId: projectData.manager.id,
         progress: projectData.progress,
       });
-      
+
       setTags(projectData.tags || []);
     } catch (err: any) {
       console.error('Failed to load project:', err);
@@ -115,7 +114,7 @@ export default function EditProjectPage() {
 
     try {
       setSaving(true);
-      
+
       const updateData: UpdateProjectData = {
         ...formData,
         tags: tags.length > 0 ? tags : undefined,
@@ -123,16 +122,16 @@ export default function EditProjectPage() {
 
       await projectService.updateProject(projectId, updateData);
       setSuccess('Project updated successfully!');
-      
+
       // Redirect back to project details after a short delay
       setTimeout(() => {
         router.push(`/projects/${projectId}`);
       }, 1500);
-      
+
     } catch (err: any) {
       setError(
-        err.response?.data?.error || 
-        err.message || 
+        err.response?.data?.error ||
+        err.message ||
         'Failed to update project. Please try again.'
       );
     } finally {

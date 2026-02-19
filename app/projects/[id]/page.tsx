@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
+import {
   ArrowLeft,
   Edit,
   Users,
@@ -37,10 +37,9 @@ export default function ProjectDetailPage() {
 
   const projectId = params.id as string;
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHR = currentUser?.role === Role.HR;
-  const isManager = currentUser?.role === Role.MANAGER;
-  const canAccess = isAdmin || isHR || isManager;
-  const canEdit = isAdmin || isHR || isManager;
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
+  const canAccess = isAdmin || isHRManager;
+  const canEdit = isAdmin || isHRManager;
 
   useEffect(() => {
     if (!canAccess) {

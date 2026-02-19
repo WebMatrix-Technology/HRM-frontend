@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
+import {
   User,
-  Mail, 
-  Phone, 
+  Mail,
+  Phone,
   Calendar,
   MapPin,
   Briefcase,
@@ -34,9 +34,8 @@ export default function UserDetailPage() {
 
   const userId = params.id as string;
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHR = currentUser?.role === Role.HR;
-  const isManager = currentUser?.role === Role.MANAGER;
-  const canAccess = isAdmin || isHR || isManager;
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
+  const canAccess = isAdmin || isHRManager;
 
   useEffect(() => {
     if (!canAccess) {
@@ -74,10 +73,8 @@ export default function UserDetailPage() {
     switch (role) {
       case 'ADMIN':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'HR':
+      case 'HR_MANAGER':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'MANAGER':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'EMPLOYEE':
         return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
       default:
@@ -176,7 +173,7 @@ export default function UserDetailPage() {
               </p>
             </div>
           </div>
-          {(isAdmin || isHR) && (
+          {(isAdmin || isHRManager) && (
             <motion.button
               onClick={() => router.push(`/users/${userId}/edit`)}
               whileHover={{ scale: 1.02 }}
@@ -216,11 +213,10 @@ export default function UserDetailPage() {
               </p>
               <div className="flex items-center gap-2 mb-4">
                 <span
-                  className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    employee.isActive
+                  className={`px-3 py-1 text-sm font-semibold rounded-full ${employee.isActive
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                       : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                  }`}
+                    }`}
                 >
                   {employee.isActive ? 'Active' : 'Inactive'}
                 </span>
@@ -239,7 +235,7 @@ export default function UserDetailPage() {
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2">
                   Contact Information
                 </h3>
-                
+
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-slate-400" />
                   <div>

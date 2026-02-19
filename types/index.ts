@@ -75,7 +75,7 @@ export interface ProjectMember {
     avatar?: string;
     position?: string;
   };
-  role: string; // 'MANAGER' | 'DEVELOPER' | 'DESIGNER' | 'TESTER' | 'ANALYST'
+  role: string; // 'HR_MANAGER' | 'CLERK' | 'EMPLOYEE' | 'ADMIN'
   joinedAt: string;
 }
 
