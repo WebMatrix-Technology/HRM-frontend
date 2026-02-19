@@ -44,12 +44,12 @@ export default function AllotmentsPage() {
   const [payrollSuccess, setPayrollSuccess] = useState('');
 
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHR = currentUser?.role === Role.HR;
-  const canAccess = isAdmin || isHR;
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
+  const canAccess = isAdmin || isHRManager;
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -93,11 +93,11 @@ export default function AllotmentsPage() {
       return matchesSearch && matchesDept;
     });
 
-    // HR can only process payroll for EMPLOYEE and MANAGER roles
-    // Admin can process payroll for EMPLOYEE, MANAGER, and HR roles
-    if (isHR && !isAdmin) {
-      filtered = filtered.filter((emp) => 
-        emp.user?.role === Role.EMPLOYEE || emp.user?.role === Role.MANAGER
+    // HR Manager can only process payroll for EMPLOYEE and CLERK roles
+    // Admin can process payroll for all roles
+    if (isHRManager && !isAdmin) {
+      filtered = filtered.filter((emp) =>
+        emp.user?.role === Role.EMPLOYEE || emp.user?.role === Role.CLERK
       );
     }
 
@@ -133,7 +133,7 @@ export default function AllotmentsPage() {
         employeeId: selectedEmployeeForPayroll.id,
         ...payrollFormData,
       });
-      
+
       setPayrollSuccess(`Payroll processed successfully for ${selectedEmployeeForPayroll.firstName} ${selectedEmployeeForPayroll.lastName}`);
       setSelectedEmployeeForPayroll(null);
     } catch (error: any) {

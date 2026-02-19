@@ -70,7 +70,7 @@ api.interceptors.request.use(
                 ],
                 byRole: [
                   { role: 'EMPLOYEE', _count: { _all: 20 } },
-                  { role: 'MANAGER', _count: { _all: 4 } },
+                  { role: 'HR_MANAGER', _count: { _all: 4 } },
                   { role: 'ADMIN', _count: { _all: 1 } }
                 ]
               }
@@ -179,7 +179,7 @@ api.interceptors.request.use(
             {
               id: 'user-2',
               email: 'alice@hrm.com',
-              role: 'HR',
+              role: 'HR_MANAGER',
               isActive: true,
               employee: {
                 id: 'demo-emp-2',
@@ -194,7 +194,7 @@ api.interceptors.request.use(
             {
               id: 'user-3',
               email: 'bob@hrm.com',
-              role: 'MANAGER',
+              role: 'ADMIN',
               isActive: true,
               employee: {
                 id: 'demo-emp-3',

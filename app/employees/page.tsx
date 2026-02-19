@@ -85,10 +85,8 @@ export default function EmployeesPage() {
     switch (role) {
       case Role.ADMIN:
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case Role.HR:
+      case Role.HR_MANAGER:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case Role.MANAGER:
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case Role.EMPLOYEE:
         return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
       default:
@@ -254,8 +252,7 @@ export default function EmployeesPage() {
             >
               <option value="">All Roles</option>
               <option value="ADMIN">Admin</option>
-              <option value="HR">HR</option>
-              <option value="MANAGER">Manager</option>
+              <option value="HR_MANAGER">HR Manager</option>
               <option value="EMPLOYEE">Employee</option>
             </select>
             <select
@@ -357,8 +354,8 @@ export default function EmployeesPage() {
                           onClick={() => isAdmin && handleToggleActive(user)}
                           disabled={!isAdmin}
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${user.isActive
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                             } ${!isAdmin ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
                         >
                           {user.isActive ? 'Active' : 'Inactive'}

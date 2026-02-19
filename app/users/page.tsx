@@ -37,10 +37,9 @@ export default function UsersPage() {
   const [departments, setDepartments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHR = currentUser?.role === Role.HR;
-  const isManager = currentUser?.role === Role.MANAGER;
-  const canAccess = isAdmin || isHR || isManager;
-  const canAddEmployee = isHR || isManager || isAdmin; // HR, Manager, and Admin can add employees
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
+  const canAccess = isAdmin || isHRManager;
+  const canAddEmployee = isHRManager || isAdmin; // HR Manager and Admin can add employees
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -329,8 +328,8 @@ export default function UsersPage() {
                   </div>
                   <span
                     className={`px-2 py-1 text-xs font-semibold rounded-full ${employee.isActive
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                       }`}
                   >
                     {employee.isActive ? 'Active' : 'Inactive'}
@@ -357,10 +356,10 @@ export default function UsersPage() {
                 </div>
 
                 <div className={`grid gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 ${employee.user?.role === 'ADMIN'
-                    ? 'grid-cols-1'
-                    : isAdmin && employee.user?.role !== 'ADMIN'
-                      ? 'grid-cols-3'
-                      : 'grid-cols-2'
+                  ? 'grid-cols-1'
+                  : isAdmin && employee.user?.role !== 'ADMIN'
+                    ? 'grid-cols-3'
+                    : 'grid-cols-2'
                   }`}>
                   <Link
                     href={`/users/${employee.id}`}

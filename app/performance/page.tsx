@@ -23,7 +23,7 @@ export default function PerformancePage() {
   const [performances, setPerformances] = useState<Performance[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
+  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR_MANAGER;
 
   const loadPerformances = async () => {
     try {
@@ -39,7 +39,7 @@ export default function PerformancePage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -54,7 +54,7 @@ export default function PerformancePage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -78,11 +78,10 @@ export default function PerformancePage() {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-5 h-5 ${
-          i < Math.round(rating)
+        className={`w-5 h-5 ${i < Math.round(rating)
             ? 'fill-yellow-400 text-yellow-400'
             : 'text-slate-300 dark:text-slate-600'
-        }`}
+          }`}
       />
     ));
   };

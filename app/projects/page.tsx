@@ -49,10 +49,9 @@ export default function ProjectsPage() {
   });
 
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHR = currentUser?.role === Role.HR;
-  const isManager = currentUser?.role === Role.MANAGER;
-  const canAccess = isAdmin || isHR || isManager;
-  const canCreateProject = isAdmin || isHR || isManager;
+  const isHRManager = currentUser?.role === Role.HR_MANAGER;
+  const canAccess = isAdmin || isHRManager;
+  const canCreateProject = isAdmin || isHRManager;
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -486,7 +485,7 @@ export default function ProjectsPage() {
                     <Eye className="w-4 h-4" />
                     View
                   </button>
-                  {(isAdmin || isManager) && (
+                  {(isAdmin || isHRManager) && (
                     <button
                       onClick={() => router.push(`/projects/${project.id}/edit`)}
                       className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"

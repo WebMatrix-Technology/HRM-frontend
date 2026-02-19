@@ -27,7 +27,7 @@ export default function RecruitmentPage() {
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR || currentUser?.role === Role.MANAGER;
+  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR_MANAGER;
 
   const loadJobPostings = async () => {
     try {
@@ -55,7 +55,7 @@ export default function RecruitmentPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -132,21 +132,19 @@ export default function RecruitmentPage() {
         <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setActiveTab('jobs')}
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeTab === 'jobs'
+            className={`px-4 py-2 font-medium transition-colors ${activeTab === 'jobs'
                 ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             Job Postings
           </button>
           <button
             onClick={() => setActiveTab('applications')}
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeTab === 'applications'
+            className={`px-4 py-2 font-medium transition-colors ${activeTab === 'applications'
                 ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             Applications
           </button>
