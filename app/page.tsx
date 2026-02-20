@@ -117,7 +117,7 @@ export default function LandingPage() {
                 <Users className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
-                Adaptus HRM
+                WebMatrix HRM
               </h1>
             </div>
             <div className="flex items-center space-x-6">
@@ -286,7 +286,7 @@ export default function LandingPage() {
                 href="/auth/login"
                 className="inline-flex items-center justify-center h-16 px-10 rounded-xl bg-white text-slate-900 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
               >
-                Start Using Adaptus Free
+                Start Using WebMatrix Free
               </Link>
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function LandingPage() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-6 text-white text-xl font-bold">
                 <Users className="w-6 h-6 text-blue-500" />
-                Adaptus HRM
+                WebMatrix HRM
               </div>
               <p className="max-w-md leading-relaxed">
                 The most advanced, beautifully designed Human Resource Management application tailored for tech teams and development agencies.
@@ -324,7 +324,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="pt-8 border-t border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-            <p>&copy; {new Date().getFullYear()} Adaptus HRM by Tech Corp. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} WebMatrix HRM. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition-colors">Terms</a>
               <a href="#" className="hover:text-white transition-colors">Privacy</a>
