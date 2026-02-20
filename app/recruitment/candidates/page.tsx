@@ -33,8 +33,19 @@ export default function CandidatesPage() {
     const [newStatus, setNewStatus] = useState('');
     const [note, setNote] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+ 
+    // Cover Letter Modal
+    const [viewingCoverLetter, setViewingCoverLetter] = useState<string | null>(null);
 
     const canManageRecruitment = user?.role === Role.HR_MANAGER || user?.role === Role.ADMIN;
+
+    const getResumeUrl = (url?: string) => {
+        if (!url) return '#';
+        if (url.startsWith('http')) return url;
+        const filename = url.split(/[/\\]/).pop();
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+        return `${backendUrl}/uploads/${filename}`;
+    };
 
     useEffect(() => {
         if (!canManageRecruitment) {
@@ -110,8 +121,8 @@ export default function CandidatesPage() {
                             key={status}
                             onClick={() => setSelectedStatus(status === 'ALL' ? '' : status)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${(selectedStatus === status || (status === 'ALL' && !selectedStatus))
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 }`}
                         >
                             {status === 'ALL' ? 'All Candidates' : status.charAt(0) + status.slice(1).toLowerCase()}
@@ -170,7 +181,7 @@ export default function CandidatesPage() {
 
                                         <div className="flex gap-3">
                                             <a
-                                                href={candidate.resumeUrl}
+                                                href={getResumeUrl(candidate.resumeUrl)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
@@ -179,7 +190,10 @@ export default function CandidatesPage() {
                                                 View Resume
                                             </a>
                                             {candidate.coverLetter && (
-                                                <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                                <button
+                                                    onClick={() => setViewingCoverLetter(candidate.coverLetter!)}
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                                >
                                                     <MessageSquare className="w-4 h-4" />
                                                     Cover Letter
                                                 </button>
@@ -274,6 +288,44 @@ export default function CandidatesPage() {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+                {/* Cover Letter Modal */}
+                {viewingCoverLetter && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col"
+                        >
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-200 dark:border-slate-700 pb-4">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <MessageSquare className="w-5 h-5 text-blue-500" />
+                                    Cover Letter
+                                </h2>
+                                <button
+                                    onClick={() => setViewingCoverLetter(null)}
+                                    className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
+                                    <XCircle className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                    {viewingCoverLetter}
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end">
+                                <button
+                                    onClick={() => setViewingCoverLetter(null)}
+                                    className="px-6 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg transition-colors font-medium"
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
