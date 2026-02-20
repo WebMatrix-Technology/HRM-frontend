@@ -1,89 +1,138 @@
+'use client';
+
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import {
+  Users,
+  Clock,
+  CalendarDays,
+  WalletCards,
+  Target,
+  Briefcase,
+  MessageSquare,
+  LineChart,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  LayoutDashboard
+} from 'lucide-react';
 
 export default function LandingPage() {
   const features = [
     {
-      icon: '👤',
+      icon: <Users className="w-6 h-6" />,
       title: 'Employee Management',
       description: 'Complete employee lifecycle management with profiles, documents, and role-based access control.',
     },
     {
-      icon: '⏱',
+      icon: <Clock className="w-6 h-6" />,
       title: 'Attendance Tracking',
       description: 'Track employee attendance with punch in/out, work from home support, and detailed reports.',
     },
     {
-      icon: '📝',
+      icon: <CalendarDays className="w-6 h-6" />,
       title: 'Leave Management',
       description: 'Streamlined leave application, approval workflow, and balance tracking system.',
     },
     {
-      icon: '💰',
+      icon: <WalletCards className="w-6 h-6" />,
       title: 'Payroll System',
-      description: 'Automated payroll processing with salary calculations, deductions, and payslip generation.',
+      description: 'Automated payroll processing with dynamic salary calculations, deductions, and payslip generation.',
     },
     {
-      icon: '🎯',
+      icon: <Target className="w-6 h-6" />,
       title: 'Performance Reviews',
       description: 'Comprehensive performance management with KPIs, goal setting, and feedback system.',
     },
     {
-      icon: '📄',
+      icon: <Briefcase className="w-6 h-6" />,
       title: 'Recruitment',
-      description: 'Manage job postings, applications, and interview scheduling all in one place.',
+      description: 'Manage job postings, applications, and interview scheduling all in one centralized place.',
     },
     {
-      icon: '💬',
+      icon: <MessageSquare className="w-6 h-6" />,
       title: 'Real-Time Chat',
-      description: 'Built-in messaging system with one-to-one and group chat capabilities.',
+      description: 'Built-in messaging system with one-to-one and group chat capabilities for seamless communication.',
     },
     {
-      icon: '📊',
+      icon: <LineChart className="w-6 h-6" />,
       title: 'Analytics & Reports',
-      description: 'Powerful reporting and analytics to make data-driven decisions.',
+      description: 'Powerful reporting and analytics to make data-driven decisions and track company growth.',
     },
   ];
 
   const benefits = [
     {
+      icon: <Zap className="w-8 h-8 text-amber-500" />,
       title: 'Streamlined Operations',
       description: 'Automate repetitive HR tasks and focus on what matters most - your people.',
     },
     {
+      icon: <LineChart className="w-8 h-8 text-emerald-500" />,
       title: 'Real-Time Insights',
       description: 'Get instant visibility into attendance, performance, and payroll data.',
     },
     {
+      icon: <ShieldCheck className="w-8 h-8 text-blue-500" />,
       title: 'Secure & Scalable',
-      description: 'Built with security in mind, scalable to grow with your organization.',
+      description: 'Built with enterprise-grade security in mind, scalable to grow with your organization.',
     },
     {
+      icon: <LayoutDashboard className="w-8 h-8 text-purple-500" />,
       title: 'User-Friendly Interface',
-      description: 'Intuitive design that requires minimal training for your team.',
+      description: 'Intuitive modern design that requires minimal training for your team to master.',
     },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-50 transition-colors duration-300 overflow-hidden font-sans">
+
+      {/* Background Decorators */}
+      <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 dark:bg-blue-600/20 blur-[120px]" />
+        <div className="absolute top-[20%] right-[-10%] w-[30%] h-[30%] rounded-full bg-purple-500/10 dark:bg-purple-600/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-emerald-500/10 dark:bg-emerald-600/20 blur-[120px]" />
+      </div>
+
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">HRM System</h1>
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+                Adaptus HRM
+              </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
+              <ThemeToggle />
               <Link
                 href="/auth/login"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="hidden sm:block text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 href="/auth/login"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="relative inline-flex h-10 items-center justify-center overflow-hidden rounded-lg bg-blue-600 dark:bg-blue-500 px-6 font-medium text-white shadow-lg transition-all hover:bg-blue-700 hover:scale-105 active:scale-95"
               >
-                Get Started
+                <span>Get Started</span>
               </Link>
             </div>
           </div>
@@ -91,132 +140,196 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              Streamline Your
-              <span className="text-blue-600"> Human Resources</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              A comprehensive HRM solution designed for web development agencies. 
-              Manage employees, track attendance, process payroll, and much more - all in one platform.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/auth/login"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
-              >
-                Get Started
-              </Link>
-              <a
-                href="#features"
-                className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors border-2 border-blue-600 inline-block cursor-pointer"
-              >
-                Learn More
-              </a>
-            </div>
-          </div>
-        </div>
+      <section className="relative pt-24 pb-32 px-4 sm:px-6 lg:px-8">
+        <motion.div
+          className="max-w-5xl mx-auto text-center"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+        >
+          <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100/50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-semibold mb-8">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            Next-Gen HR Platform
+          </motion.div>
+
+          <motion.h1 variants={itemVariants} className="text-6xl md:text-7xl font-extrabold tracking-tight mb-8">
+            Supercharge Your <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+              Dev Agency Workforce
+            </span>
+          </motion.h1>
+
+          <motion.p variants={itemVariants} className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+            A comprehensive, AI-ready HRM solution designed specifically for modern web development agencies. Manage teams, track time, process payroll, and scale effortlessly.
+          </motion.p>
+
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/auth/login"
+              className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 font-medium text-white shadow-xl hover:shadow-2xl transition-all hover:scale-105"
+            >
+              <span className="flex items-center gap-2 text-lg">
+                Enter Dashboard
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </Link>
+            <a
+              href="#features"
+              className="inline-flex h-14 items-center justify-center rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 px-8 font-medium text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-all hover:scale-105 shadow-sm"
+            >
+              <span className="text-lg">Explore Features</span>
+            </a>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Features Grid */}
+      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful Features</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to manage your human resources efficiently
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">Built for Modern Teams</h2>
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+              Everything you need to orchestrate your human resources efficiently from a single, beautiful dashboard.
             </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <div
+              <motion.div
                 key={index}
-                className="bg-gray-50 rounded-xl p-6 hover:shadow-lg transition-shadow border border-gray-200"
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -5 }}
+                className="group relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all overflow-hidden"
               >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-full blur-2xl -mr-10 -mt-10 transition-opacity opacity-0 group-hover:opacity-100" />
+
+                <div className="relative z-10">
+                  <div className="w-14 h-14 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium text-sm">
+                    {feature.description}
+                  </p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-purple-50">
+      <section className="py-32 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Our HRM System?</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Built specifically for modern web development agencies
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl font-bold mb-6">Why Agencies Trust Us</h2>
+            <p className="text-xl text-slate-600 dark:text-slate-400">
+              The competitive advantage for your HR department.
             </p>
-          </div>
+          </motion.div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {benefits.map((benefit, index) => (
-              <div
+              <motion.div
                 key={index}
-                className="bg-white rounded-xl p-8 shadow-md hover:shadow-lg transition-shadow"
+                initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="flex gap-6 items-start bg-white/40 dark:bg-slate-800/40 backdrop-blur-md rounded-2xl p-8 border border-white/20 dark:border-slate-700/50 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
               >
-                <h3 className="text-2xl font-semibold text-gray-900 mb-4">{benefit.title}</h3>
-                <p className="text-gray-600 text-lg">{benefit.description}</p>
-              </div>
+                <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                  {benefit.icon}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-3">{benefit.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">
+                    {benefit.description}
+                  </p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-blue-600">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">Ready to Transform Your HR Operations?</h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Join forward-thinking agencies that have streamlined their HR processes
-          </p>
-          <Link
-            href="/auth/login"
-            className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl"
-          >
-            Start Free Trial
-          </Link>
+      <section className="py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 p-12 md:p-20 text-center shadow-2xl">
+            {/* Pattern Overlay */}
+            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+
+            <div className="relative z-10">
+              <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+                Ready to Upgrade Your HR Engine?
+              </h2>
+              <p className="text-xl md:text-2xl text-blue-100 mb-10 max-w-2xl mx-auto">
+                Join elite web agencies that have already automated their human resource management.
+              </p>
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center justify-center h-16 px-10 rounded-xl bg-white text-slate-900 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+              >
+                Start Using Adaptus Free
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="bg-slate-900 dark:bg-[#050812] text-slate-400 py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-white text-xl font-bold mb-4">HRM System</h3>
-              <p className="text-sm">
-                Comprehensive Human Resource Management solution for modern web development agencies.
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center gap-2 mb-6 text-white text-xl font-bold">
+                <Users className="w-6 h-6 text-blue-500" />
+                Adaptus HRM
+              </div>
+              <p className="max-w-md leading-relaxed">
+                The most advanced, beautifully designed Human Resource Management application tailored for tech teams and development agencies.
               </p>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <a href="#features" className="hover:text-white transition-colors cursor-pointer">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <Link href="/auth/login" className="hover:text-white transition-colors">
-                    Sign In
-                  </Link>
-                </li>
+              <h4 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Product</h4>
+              <ul className="space-y-4">
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Features</a></li>
+                <li><Link href="/auth/login" className="hover:text-blue-400 transition-colors">Login</Link></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Security</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <p className="text-sm">
-                For support and inquiries, please contact your system administrator.
-              </p>
+              <h4 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Company</h4>
+              <ul className="space-y-4">
+                <li><a href="#" className="hover:text-blue-400 transition-colors">About Us</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Contact</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Privacy Policy</a></li>
+              </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-            <p>&copy; {new Date().getFullYear()} HRM System. All rights reserved.</p>
+          <div className="pt-8 border-t border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
+            <p>&copy; {new Date().getFullYear()} Adaptus HRM by Tech Corp. All rights reserved.</p>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-white transition-colors">Terms</a>
+              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+              <a href="#" className="hover:text-white transition-colors">Cookies</a>
+            </div>
           </div>
         </div>
       </footer>
