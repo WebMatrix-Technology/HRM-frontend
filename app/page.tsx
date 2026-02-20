@@ -123,6 +123,12 @@ export default function LandingPage() {
             <div className="flex items-center space-x-6">
               <ThemeToggle />
               <Link
+                href="/careers"
+                className="hidden md:block text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
+              >
+                Careers
+              </Link>
+              <Link
                 href="/auth/login"
                 className="hidden sm:block text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
               >
@@ -310,6 +316,7 @@ export default function LandingPage() {
               <h4 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Product</h4>
               <ul className="space-y-4">
                 <li><a href="#features" className="hover:text-blue-400 transition-colors">Features</a></li>
+                <li><Link href="/careers" className="hover:text-blue-400 transition-colors">Careers</Link></li>
                 <li><Link href="/auth/login" className="hover:text-blue-400 transition-colors">Login</Link></li>
                 <li><a href="#" className="hover:text-blue-400 transition-colors">Security</a></li>
               </ul>
