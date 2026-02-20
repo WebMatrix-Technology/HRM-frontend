@@ -365,7 +365,7 @@ api.interceptors.request.use(
               startDate: new Date().toISOString(),
               endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
               description: 'A demo project for testing.',
-              manager: { firstName: 'Demo', lastName: 'Manager' },
+              manager: { id: 'demo-emp-id', _id: 'demo-emp-id', firstName: 'Demo', lastName: 'Manager' },
               members: []
             }
           ];

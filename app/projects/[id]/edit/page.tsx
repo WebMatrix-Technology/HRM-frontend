@@ -69,7 +69,7 @@ export default function EditProjectPage() {
         endDate: projectData.endDate ? projectData.endDate.split('T')[0] : '',
         deadline: projectData.deadline ? projectData.deadline.split('T')[0] : '',
         budget: projectData.budget || 0,
-        managerId: projectData.manager.id,
+        managerId: projectData.manager?.id || (projectData.manager as any)?._id || (typeof projectData.manager === 'string' ? projectData.manager : ''),
         progress: projectData.progress,
       });
 
