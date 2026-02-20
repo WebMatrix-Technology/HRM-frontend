@@ -35,9 +35,9 @@ export default function CareersPage() {
         lastName: '',
         email: '',
         phone: '',
-        resumeUrl: '',
         coverLetter: ''
     });
+    const [resumeFile, setResumeFile] = useState<File | null>(null);
 
     useEffect(() => {
         loadJobs();
@@ -70,7 +70,15 @@ export default function CareersPage() {
             setIsApplying(true);
             setApplicationError('');
 
-            await recruitmentService.applyForJob(selectedJob._id, formData);
+            const pData = new FormData();
+            pData.append('firstName', formData.firstName);
+            pData.append('lastName', formData.lastName);
+            pData.append('email', formData.email);
+            pData.append('phone', formData.phone);
+            if (formData.coverLetter) pData.append('coverLetter', formData.coverLetter);
+            if (resumeFile) pData.append('resumeFile', resumeFile);
+
+            await recruitmentService.applyForJob(selectedJob._id, pData);
             setApplicationSuccess('Your application has been submitted successfully! We will be in touch soon.');
 
             // Clear form but keep success message visible for a bit
@@ -78,8 +86,9 @@ export default function CareersPage() {
                 setApplicationSuccess('');
                 setSelectedJob(null);
                 setFormData({
-                    firstName: '', lastName: '', email: '', phone: '', resumeUrl: '', coverLetter: ''
+                    firstName: '', lastName: '', email: '', phone: '', coverLetter: ''
                 });
+                setResumeFile(null);
             }, 3000);
 
         } catch (error: any) {
@@ -309,14 +318,13 @@ export default function CareersPage() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Resume URL *</label>
+                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Resume (PDF, DOC, IMG) *</label>
                                             <input
-                                                type="url"
+                                                type="file"
                                                 required
-                                                placeholder="Link to LinkedIn, Google Drive, Portfolio, etc."
-                                                value={formData.resumeUrl}
-                                                onChange={e => setFormData({ ...formData, resumeUrl: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                                onChange={e => setResumeFile(e.target.files?.[0] || null)}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 dark:file:bg-slate-800 dark:file:text-slate-300"
                                             />
                                         </div>
 

@@ -62,8 +62,11 @@ export const recruitmentService = {
   },
 
   // Candidates
-  applyForJob: async (jobId: string, data: Partial<Candidate>) => {
-    const response = await api.post(`/recruitment/jobs/${jobId}/apply`, data);
+  applyForJob: async (jobId: string, data: Partial<Candidate> | FormData) => {
+    const isFormData = data instanceof FormData;
+    const response = await api.post(`/recruitment/jobs/${jobId}/apply`, data, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
     return response.data.data || response.data;
   },
 
