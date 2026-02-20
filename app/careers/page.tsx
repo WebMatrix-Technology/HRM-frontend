@@ -18,6 +18,7 @@ import {
     CheckCircle2,
     AlertCircle
 } from 'lucide-react';
+import PublicHeader from '@/components/layout/PublicHeader';
 
 export default function CareersPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -102,29 +103,7 @@ export default function CareersPage() {
             </div>
 
             {/* Navigation */}
-            <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-20">
-                        <Link href="/" className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
-                                <Users className="w-6 h-6 text-white" />
-                            </div>
-                            <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
-                                WebMatrix HRM
-                            </h1>
-                        </Link>
-                        <div className="flex items-center space-x-6">
-                            <ThemeToggle />
-                            <Link
-                                href="/auth/login"
-                                className="hidden sm:block text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
-                            >
-                                Employee Portal
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <PublicHeader />
 
             {/* Header Section */}
             <section className="relative pt-20 pb-16 px-4">
