@@ -15,8 +15,11 @@ import {
   XCircle,
   AlertCircle,
   Check,
+  Coffee,
+  Activity,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useIdleTimer } from '@/components/providers/IdleTimerProvider';
 
 export default function AttendancePage() {
   const { employee } = useAuthStore();
@@ -26,6 +29,8 @@ export default function AttendancePage() {
   const [canPunchIn, setCanPunchIn] = useState(true);
   const [canPunchOut, setCanPunchOut] = useState(false);
   const [workFromHome, setWorkFromHome] = useState(false);
+
+  const { idleSeconds, resetIdleTime } = useIdleTimer();
 
   useEffect(() => {
     loadAttendance();
@@ -74,7 +79,8 @@ export default function AttendancePage() {
 
   const handlePunchOut = async () => {
     try {
-      await attendanceService.punchOut();
+      await attendanceService.punchOut(idleSeconds);
+      resetIdleTime(); // Reset timer after punch out
       await checkTodayAttendance();
       await loadAttendance();
     } catch (error: any) {
@@ -95,6 +101,14 @@ export default function AttendancePage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatDuration = (seconds?: number) => {
+    if (seconds === undefined || seconds < 0) return '-';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    return `${mins}m`;
   };
 
   const presentDays = attendance.filter((a) => a.status === 'PRESENT').length;
@@ -258,6 +272,8 @@ export default function AttendancePage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Punch In</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Punch Out</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Prod. Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Idle Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Location</th>
                 </tr>
@@ -280,6 +296,22 @@ export default function AttendancePage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
                         {formatTime(record.punchOut)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                        {record.productiveTime !== undefined ? (
+                          <span className="flex items-center gap-1">
+                            <Activity className="w-4 h-4" />
+                            {formatDuration(record.productiveTime)}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-600 dark:text-amber-400 font-medium">
+                        {record.idleTime !== undefined ? (
+                          <span className="flex items-center gap-1">
+                            <Coffee className="w-4 h-4" />
+                            {formatDuration(record.idleTime)}
+                          </span>
+                        ) : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">

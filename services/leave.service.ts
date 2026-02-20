@@ -33,6 +33,7 @@ export const leaveService = {
     startDate: string;
     endDate: string;
     reason: string;
+    employeeId?: string;
   }): Promise<Leave> => {
     const response = await api.post('/leave', data);
     return response.data.data;

@@ -1,84 +1,79 @@
 import api from './api';
 
-export interface JobPosting {
-  id: string;
+export interface Job {
+  _id: string;
   title: string;
-  department: string;
-  position: string;
   description: string;
-  requirements: string[];
+  department: string;
   location: string;
-  employmentType: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN';
-  salaryRange?: string;
-  status: 'OPEN' | 'CLOSED';
-  postedAt: string;
-  applications?: JobApplication[];
+  type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
+  requirements: string[];
+  salaryRange: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  postedBy: any; // User object ref
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface JobApplication {
-  id: string;
-  jobPostingId: string;
+export interface Candidate {
+  _id: string;
+  jobId: Job | string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  resume?: string;
+  resumeUrl: string;
   coverLetter?: string;
-  status: 'PENDING' | 'SHORTLISTED' | 'REJECTED' | 'HIRED';
-  appliedAt: string;
-  jobPosting?: JobPosting;
+  status: 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
+  notes: {
+    text: string;
+    author: string;
+    date: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const recruitmentService = {
-  // Job Postings
-  createJobPosting: async (data: Omit<JobPosting, 'id' | 'postedAt' | 'status'>): Promise<JobPosting> => {
-    const response = await api.post('/recruitment/jobs', data);
-    return response.data.data;
+  // Jobs
+  getJobs: async (params?: { status?: string; department?: string; type?: string }) => {
+    const response = await api.get('/recruitment/jobs', { params });
+    // Handle both wrapped {success:true, data:[]} and direct [] responses
+    return response.data.data || response.data;
   },
 
-  getJobPostings: async (status?: JobPosting['status']): Promise<JobPosting[]> => {
-    const params = status ? `?status=${status}` : '';
-    const response = await api.get(`/recruitment/jobs${params}`);
-    return response.data.data;
-  },
-
-  getJobPostingById: async (id: string): Promise<JobPosting> => {
+  getJobById: async (id: string) => {
     const response = await api.get(`/recruitment/jobs/${id}`);
-    return response.data.data;
+    return response.data.data || response.data;
   },
 
-  updateJobPosting: async (id: string, data: Partial<JobPosting>): Promise<JobPosting> => {
+  createJob: async (data: Partial<Job>) => {
+    const response = await api.post('/recruitment/jobs', data);
+    return response.data.data || response.data;
+  },
+
+  updateJob: async (id: string, data: Partial<Job>) => {
     const response = await api.put(`/recruitment/jobs/${id}`, data);
-    return response.data.data;
+    return response.data.data || response.data;
   },
 
-  // Applications
-  applyForJob: async (data: {
-    jobPostingId: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    resume?: string;
-    coverLetter?: string;
-  }): Promise<JobApplication> => {
-    const response = await api.post('/recruitment/applications', data);
-    return response.data.data;
+  // Candidates
+  applyForJob: async (jobId: string, data: Partial<Candidate>) => {
+    const response = await api.post(`/recruitment/jobs/${jobId}/apply`, data);
+    return response.data.data || response.data;
   },
 
-  getApplications: async (jobPostingId?: string, status?: JobApplication['status']): Promise<JobApplication[]> => {
-    const params = new URLSearchParams();
-    if (jobPostingId) params.append('jobPostingId', jobPostingId);
-    if (status) params.append('status', status);
-
-    const response = await api.get(`/recruitment/applications?${params}`);
-    return response.data.data;
+  getCandidates: async (params?: { jobId?: string; status?: string }) => {
+    const response = await api.get('/recruitment/candidates', { params });
+    return response.data.data || response.data;
   },
 
-  updateApplicationStatus: async (id: string, status: JobApplication['status']): Promise<JobApplication> => {
-    const response = await api.put(`/recruitment/applications/${id}/status`, { status });
-    return response.data.data;
+  updateCandidateStatus: async (id: string, status: string, note?: string) => {
+    const response = await api.put(`/recruitment/candidates/${id}/status`, { status, note });
+    return response.data.data || response.data;
   },
 };
-
-

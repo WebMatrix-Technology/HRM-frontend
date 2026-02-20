@@ -8,6 +8,8 @@ export interface Attendance {
   punchOut?: string;
   workFromHome: boolean;
   status: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY';
+  idleTime?: number;
+  productiveTime?: number;
 }
 
 export interface MonthlyReport {
@@ -25,8 +27,8 @@ export const attendanceService = {
     return response.data.data;
   },
 
-  punchOut: async (): Promise<Attendance> => {
-    const response = await api.post('/attendance/punch-out');
+  punchOut: async (idleTime: number = 0): Promise<Attendance> => {
+    const response = await api.post('/attendance/punch-out', { idleTime });
     return response.data.data;
   },
 

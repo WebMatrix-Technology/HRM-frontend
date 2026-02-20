@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import NotificationDropdown from './NotificationDropdown';
 import { notificationService, Notification } from '@/services/notification.service';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -93,7 +94,9 @@ export default function Header() {
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-2 relative">
+        <div className="flex items-center gap-4 relative">
+          <ThemeToggle />
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

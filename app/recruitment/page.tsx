@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { recruitmentService, JobPosting, JobApplication } from '@/services/recruitment.service';
+import { recruitmentService, Job } from '@/services/recruitment.service';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
 import {
@@ -12,97 +12,80 @@ import {
   Plus,
   MapPin,
   DollarSign,
-  Calendar,
-  Users,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  UserCheck,
+  Search,
+  Filter,
+  ArrowRight,
 } from 'lucide-react';
 
 export default function RecruitmentPage() {
   const router = useRouter();
-  const { user: currentUser, isAuthenticated } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'jobs' | 'applications'>('jobs');
-  const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
-  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const { user } = useAuthStore();
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const canAccess = currentUser?.role === Role.ADMIN || currentUser?.role === Role.HR_MANAGER;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showPostJobModal, setShowPostJobModal] = useState(false);
 
-  const loadJobPostings = async () => {
-    try {
-      setLoading(true);
-      const data = await recruitmentService.getJobPostings('OPEN');
-      setJobPostings(data);
-    } catch (error) {
-      console.error('Failed to load job postings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Job Post Form State
+  const [newJob, setNewJob] = useState<Partial<Job>>({
+    title: '',
+    department: '',
+    location: '',
+    type: 'FULL_TIME',
+    description: '',
+    salaryRange: { min: 0, max: 0, currency: 'INR' },
+    requirements: [],
+    status: 'OPEN',
+  });
+  const [requirementsInput, setRequirementsInput] = useState('');
 
-  const loadApplications = async () => {
-    try {
-      setLoading(true);
-      const data = await recruitmentService.getApplications();
-      setApplications(data);
-    } catch (error) {
-      console.error('Failed to load applications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const canManageRecruitment = user?.role === Role.HR_MANAGER || user?.role === Role.ADMIN;
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    loadJobs();
+  }, []);
 
-    if (!canAccess) {
-      router.replace('/dashboard');
-      return;
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      const data = await recruitmentService.getJobs();
+      setJobs(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to load jobs:', error);
+    } finally {
+      setLoading(false);
     }
-
-    if (activeTab === 'jobs') {
-      loadJobPostings();
-    } else {
-      loadApplications();
-    }
-  }, [isAuthenticated, canAccess, router, activeTab]);
-
-  if (!canAccess) {
-    return null;
-  }
-
-  const getStatusBadge = (status: JobApplication['status']) => {
-    const styles = {
-      PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-      SHORTLISTED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-      REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-      HIRED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    };
-    const icons = {
-      PENDING: Clock,
-      SHORTLISTED: CheckCircle2,
-      REJECTED: XCircle,
-      HIRED: UserCheck,
-    };
-    const Icon = icons[status];
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${styles[status]}`}>
-        <Icon className="w-3 h-3" />
-        {status}
-      </span>
-    );
   };
 
-  const getEmploymentTypeColor = (type: JobPosting['employmentType']) => {
-    const colors = {
-      FULL_TIME: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-      PART_TIME: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-      CONTRACT: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-      INTERN: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    };
-    return colors[type] || '';
+  const handleCreateJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const jobData = {
+        ...newJob,
+        requirements: requirementsInput.split('\n').filter(r => r.trim()),
+      };
+      await recruitmentService.createJob(jobData);
+      setShowPostJobModal(false);
+      setNewJob({
+        title: '',
+        department: '',
+        location: '',
+        type: 'FULL_TIME',
+        description: '',
+        salaryRange: { min: 0, max: 0, currency: 'INR' },
+        requirements: [],
+        status: 'OPEN',
+      });
+      setRequirementsInput('');
+      loadJobs();
+    } catch (error) {
+      console.error('Failed to create job:', error);
+    }
   };
+
+  const filteredJobs = jobs.filter(job =>
+    job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.department.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <DashboardLayout>
@@ -111,8 +94,8 @@ export default function RecruitmentPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-              <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg">
-                <Briefcase className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <Briefcase className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               Recruitment
             </h1>
@@ -120,155 +103,216 @@ export default function RecruitmentPage() {
               Manage job postings and applications
             </p>
           </div>
-          {activeTab === 'jobs' && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg transition-colors shadow-lg">
-              <Plus className="w-5 h-5" />
-              Post Job
-            </button>
+          {canManageRecruitment && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/recruitment/candidates')}
+                className="px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+              >
+                View Candidates
+              </button>
+              <button
+                onClick={() => setShowPostJobModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg"
+              >
+                <Plus className="w-5 h-5" />
+                Post Job
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => setActiveTab('jobs')}
-            className={`px-4 py-2 font-medium transition-colors ${activeTab === 'jobs'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-          >
-            Job Postings
-          </button>
-          <button
-            onClick={() => setActiveTab('applications')}
-            className={`px-4 py-2 font-medium transition-colors ${activeTab === 'applications'
-                ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-          >
-            Applications
+        {/* Filters */}
+        <div className="flex gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search jobs by title or department..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+            />
+          </div>
+          <button className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            Filters
           </button>
         </div>
 
-        {/* Job Postings */}
-        {activeTab === 'jobs' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobPostings.length === 0 ? (
-              <div className="col-span-full text-center py-12 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                <Briefcase className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-500">No job postings found</p>
-              </div>
-            ) : (
-              jobPostings.map((job) => (
-                <motion.div
-                  key={job.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 hover:shadow-2xl transition-all"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                        {job.title}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        <Briefcase className="w-4 h-4" />
-                        <span>{job.department}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                        <MapPin className="w-4 h-4" />
-                        <span>{job.location}</span>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${getEmploymentTypeColor(
-                        job.employmentType
-                      )}`}
-                    >
-                      {job.employmentType.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
-                    {job.description}
-                  </p>
-
-                  {job.salaryRange && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      <DollarSign className="w-4 h-4" />
-                      <span>{job.salaryRange}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Calendar className="w-4 h-4" />
-                      <span>{new Date(job.postedAt).toLocaleDateString()}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">
-                      {job.applications?.length || 0} applications
-                    </span>
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Applications */}
-        {activeTab === 'applications' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
-          >
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Job Applications</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              {applications.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <Users className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                  <p>No applications found</p>
+        {/* Job Listings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredJobs.map((job) => (
+            <motion.div
+              key={job._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 flex flex-col hover:shadow-xl transition-shadow"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{job.title}</h3>
+                  <p className="text-blue-600 dark:text-blue-400 font-medium text-sm">{job.department}</p>
                 </div>
-              ) : (
-                applications.map((application) => (
-                  <div
-                    key={application.id}
-                    className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-slate-900 dark:text-white">
-                            {application.firstName} {application.lastName}
-                          </h3>
-                          {getStatusBadge(application.status)}
-                        </div>
-                        <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                          <p>{application.email}</p>
-                          <p>{application.phone}</p>
-                          {application.jobPosting && (
-                            <p className="font-medium text-slate-700 dark:text-slate-300 mt-2">
-                              Applied for: {application.jobPosting.title}
-                            </p>
-                          )}
-                          <p className="text-xs text-slate-500 mt-2">
-                            Applied on {new Date(application.appliedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${job.status === 'OPEN' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800'
+                  }`}>
+                  {job.status}
+                </span>
+              </div>
+
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
+                  <MapPin className="w-4 h-4" />
+                  {job.location}
+                </div>
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
+                  <Briefcase className="w-4 h-4" />
+                  {job.type.replace('_', ' ')}
+                </div>
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
+                  <DollarSign className="w-4 h-4" />
+                  {job.salaryRange.min.toLocaleString()} - {job.salaryRange.max.toLocaleString()} {job.salaryRange.currency}
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-3 mt-2">
+                  {job.description}
+                </p>
+              </div>
+
+              <button
+                onClick={() => router.push(`/recruitment/${job._id}`)}
+                className="w-full py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                View Details
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Create Job Modal */}
+        {showPostJobModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            >
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Post New Job</h2>
+              <form onSubmit={handleCreateJob} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Job Title</label>
+                    <input
+                      type="text"
+                      value={newJob.title}
+                      onChange={e => setNewJob({ ...newJob, title: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      required
+                    />
                   </div>
-                ))
-              )}
-            </div>
-          </motion.div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department</label>
+                    <input
+                      type="text"
+                      value={newJob.department}
+                      onChange={e => setNewJob({ ...newJob, department: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={newJob.location}
+                      onChange={e => setNewJob({ ...newJob, location: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
+                    <select
+                      value={newJob.type}
+                      onChange={e => setNewJob({ ...newJob, type: e.target.value as any })}
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    >
+                      <option value="FULL_TIME">Full Time</option>
+                      <option value="PART_TIME">Part Time</option>
+                      <option value="CONTRACT">Contract</option>
+                      <option value="INTERNSHIP">Internship</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                  <textarea
+                    value={newJob.description}
+                    onChange={e => setNewJob({ ...newJob, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    rows={4}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Min Salary</label>
+                    <input
+                      type="number"
+                      value={newJob.salaryRange?.min}
+                      onChange={e => setNewJob({ ...newJob, salaryRange: { ...newJob.salaryRange!, min: Number(e.target.value) } })}
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Max Salary</label>
+                    <input
+                      type="number"
+                      value={newJob.salaryRange?.max}
+                      onChange={e => setNewJob({ ...newJob, salaryRange: { ...newJob.salaryRange!, max: Number(e.target.value) } })}
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Requirements (One per line)</label>
+                  <textarea
+                    value={requirementsInput}
+                    onChange={e => setRequirementsInput(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    rows={4}
+                    placeholder="- 5+ years experience&#10;- React knowledge"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowPostJobModal(false)}
+                    className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    Post Job
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </div>
     </DashboardLayout>
   );
 }
-
-

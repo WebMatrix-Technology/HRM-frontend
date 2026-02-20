@@ -19,6 +19,15 @@ export interface Performance {
   };
 }
 
+export interface PerformanceAnalytics {
+  trend: { period: string; averageRating: number }[];
+  departmentAverages: { department: string; averageRating: number }[];
+  topPerformers: {
+    employee: { id: string; firstName: string; lastName: string; employeeId: string; department?: string };
+    averageRating: number;
+    reviewCount: number;
+  }[];
+}
 export const performanceService = {
   createPerformance: async (data: {
     employeeId: string;
@@ -45,6 +54,11 @@ export const performanceService = {
 
   updatePerformance: async (id: string, data: Partial<Performance>): Promise<Performance> => {
     const response = await api.put(`/performance/${id}`, data);
+    return response.data.data;
+  },
+
+  getAnalytics: async (): Promise<PerformanceAnalytics> => {
+    const response = await api.get('/performance/analytics');
     return response.data.data;
   },
 };

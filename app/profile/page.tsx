@@ -24,9 +24,13 @@ import {
   EyeOff,
   AlertCircle,
   CheckCircle2,
+  FileText,
+  Download
 } from 'lucide-react';
 import Link from 'next/link';
 import { Role } from '@/types';
+import { payrollService, Payroll } from '@/services/payroll.service';
+import { payslipService } from '@/services/payslip.service';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -46,6 +50,26 @@ export default function ProfilePage() {
     new: false,
     confirm: false,
   });
+
+  const [payslips, setPayslips] = useState<Payroll[]>([]);
+  const [loadingPayslips, setLoadingPayslips] = useState(false);
+
+  useEffect(() => {
+    const loadPayslips = async () => {
+      if (employee?.id) {
+        try {
+          setLoadingPayslips(true);
+          const data = await payrollService.getPayrolls(employee.id);
+          setPayslips(data);
+        } catch (error) {
+          console.error("Failed to load payslips:", error);
+        } finally {
+          setLoadingPayslips(false);
+        }
+      }
+    };
+    loadPayslips();
+  }, [employee]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -296,8 +320,8 @@ export default function ProfilePage() {
                   <div className="w-5 h-5 flex items-center justify-center">
                     <div
                       className={`w-3 h-3 rounded-full ${user.isActive
-                          ? 'bg-green-500'
-                          : 'bg-red-500'
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
                         }`}
                     />
                   </div>
@@ -570,6 +594,53 @@ export default function ProfilePage() {
                       <Edit className="w-4 h-4" />
                       Edit Employee Profile
                     </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Payslips Information */}
+            {employee && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  My Payslips
+                </h3>
+
+                {loadingPayslips ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  </div>
+                ) : payslips.length === 0 ? (
+                  <div className="text-center py-6 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No payslips available.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {payslips.map(payslip => (
+                      <div key={payslip._id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">
+                              {new Date(payslip.year, payslip.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            </p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Net Pay: ₹{payslip.netSalary?.toLocaleString()} • Status: {payslip.status}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => payslipService.generatePayslip(payslip)}
+                          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 rounded-lg transition-colors"
+                          title="Download Payslip PDF"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

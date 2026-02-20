@@ -1,7 +1,6 @@
 import api from './api';
 
-export interface Payroll {
-  id: string;
+export interface ProcessPayrollData {
   employeeId: string;
   month: number;
   year: number;
@@ -11,30 +10,63 @@ export interface Payroll {
   pf?: number;
   esic?: number;
   tds?: number;
+}
+
+export interface Payroll {
+  _id: string;
+  employeeId: any; // Populated Employee object from backend
+  month: number;
+  year: number;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  pf: number;
+  metrics?: {
+    absentDays: number;
+    idleHours: number;
+    absentDeduction: number;
+    idleDeduction: number;
+  };
+  esic?: number;
+  tds?: number;
   netSalary: number;
   status: 'PENDING' | 'PROCESSED' | 'PAID';
   paidAt?: string;
-  employee?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    employeeId: string;
+}
+
+export interface PayrollFormData {
+  employeeId: string;
+  month: number;
+  year: number;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  pf: number;
+  esic: number;
+  tds: number;
+  metrics?: {
+    absentDays: number;
+    idleHours: number;
+    absentDeduction: number;
+    idleDeduction: number;
   };
 }
 
 export const payrollService = {
-  processPayroll: async (data: {
-    employeeId: string;
-    month: number;
-    year: number;
-    basicSalary: number;
-    allowances?: number;
-    deductions?: number;
-    pf?: number;
-    esic?: number;
-    tds?: number;
-  }): Promise<Payroll> => {
-    const response = await api.post('/payroll', data);
+  processPayroll: async (data: ProcessPayrollData): Promise<Payroll> => {
+    const response = await api.post('/payroll/process', data);
+    return response.data.data;
+  },
+
+  getHistory: async (): Promise<Payroll[]> => {
+    const response = await api.get('/payroll');
+    return response.data.data;
+  },
+
+  calculatePayroll: async (employeeId: string, month: number, year: number): Promise<PayrollFormData> => {
+    const response = await api.get(`/payroll/${employeeId}/calculate`, {
+      params: { month, year }
+    });
     return response.data.data;
   },
 

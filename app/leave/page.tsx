@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { leaveService, Leave, LeaveBalance } from '@/services/leave.service';
+import { employeeService, Employee } from '@/services/employee.service';
 import {
   Calendar,
   Plus,
@@ -12,26 +13,35 @@ import {
   XCircle,
   AlertCircle,
   TrendingUp,
+  Users,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
 
 export default function LeavePage() {
-  const { employee } = useAuthStore();
+  const { employee, user } = useAuthStore();
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [balance, setBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [formData, setFormData] = useState({
     type: 'VACATION' as Leave['type'],
     startDate: '',
     endDate: '',
     reason: '',
+    employeeId: '',
   });
+
+  const isPrivileged = user?.role === Role.HR_MANAGER || user?.role === Role.ADMIN;
 
   useEffect(() => {
     loadLeaves();
     loadBalance();
-  }, []);
+    if (isPrivileged) {
+      loadEmployees();
+    }
+  }, [isPrivileged]);
 
   const loadLeaves = async () => {
     try {
@@ -54,12 +64,21 @@ export default function LeavePage() {
     }
   };
 
+  const loadEmployees = async () => {
+    try {
+      const data = await employeeService.getEmployees(1, 1000, { isActive: true });
+      setEmployees(data.employees);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await leaveService.applyLeave(formData);
       setShowForm(false);
-      setFormData({ type: 'VACATION', startDate: '', endDate: '', reason: '' });
+      setFormData({ type: 'VACATION', startDate: '', endDate: '', reason: '', employeeId: '' });
       await loadLeaves();
       await loadBalance();
     } catch (error: any) {
@@ -120,7 +139,7 @@ export default function LeavePage() {
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-lg"
           >
             <Plus className="w-5 h-5" />
-            Apply Leave
+            {isPrivileged ? 'Assign / Apply Leave' : 'Apply Leave'}
           </button>
         </div>
 
@@ -186,8 +205,30 @@ export default function LeavePage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700"
           >
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Apply for Leave</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+              {isPrivileged ? 'Assign or Apply for Leave' : 'Apply for Leave'}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isPrivileged && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Select Employee (Optional - Leave empty for yourself)
+                  </label>
+                  <select
+                    value={formData.employeeId}
+                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  >
+                    <option value="">Myself</option>
+                    {employees.map((emp) => (
+                      <option key={emp.employeeId} value={emp.employeeId}>
+                        {emp.firstName} {emp.lastName} ({emp.employeeId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Leave Type
@@ -300,6 +341,11 @@ export default function LeavePage() {
                         </p>
                         <p>{leave.days} day(s)</p>
                         <p className="mt-2">{leave.reason}</p>
+                        {leave.employee && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Applied for: {leave.employee.firstName} {leave.employee.lastName} ({leave.employee.employeeId})
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

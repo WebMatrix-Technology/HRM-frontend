@@ -23,6 +23,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
 import { employeeService, Employee } from '@/services/employee.service';
+import { documentService } from '@/services/document.service';
+import { FileText, Download, Trash2 } from 'lucide-react';
 
 export default function UserDetailPage() {
   const router = useRouter();
@@ -57,6 +59,60 @@ export default function UserDetailPage() {
       setError(err.response?.data?.message || 'Failed to load employee details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Document State
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState('');
+  const [newDocFile, setNewDocFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (employee && employee.id) {
+      loadDocuments(employee.id);
+    }
+  }, [employee]);
+
+  const loadDocuments = async (empId: string) => {
+    try {
+      setLoadingDocs(true);
+      const docs = await documentService.getDocuments(empId);
+      setDocuments(docs || []);
+    } catch (error) {
+      console.error('Failed to load documents', error);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  const handleUploadDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!employee?.id || !newDocFile) return;
+
+    try {
+      setUploading(true);
+      await documentService.uploadDocument(employee.id, newDocTitle, newDocFile);
+      setShowUploadModal(false);
+      setNewDocTitle('');
+      setNewDocFile(null);
+      loadDocuments(employee.id);
+    } catch (error) {
+      console.error('Failed to upload', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    if (!confirm('Delete this document?')) return;
+    try {
+      await documentService.deleteDocument(id);
+      if (employee?.id) loadDocuments(employee.id);
+    } catch (error) {
+      console.error('Failed to delete', error);
     }
   };
 
@@ -214,8 +270,8 @@ export default function UserDetailPage() {
               <div className="flex items-center gap-2 mb-4">
                 <span
                   className={`px-3 py-1 text-sm font-semibold rounded-full ${employee.isActive
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                     }`}
                 >
                   {employee.isActive ? 'Active' : 'Inactive'}
@@ -391,7 +447,112 @@ export default function UserDetailPage() {
 
           </div>
         </motion.div>
+        {/* Documents Information */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700"
+        >
+          <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3 mb-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Documents
+            </h3>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+            >
+              <div className="w-4 h-4"><FileText className="w-4 h-4" /></div>
+              Upload
+            </button>
+          </div>
+
+          {loadingDocs ? (
+            <p className="text-sm text-slate-500">Loading documents...</p>
+          ) : documents.length === 0 ? (
+            <p className="text-sm text-slate-500">No documents uploaded.</p>
+          ) : (
+            <div className="space-y-3">
+              {documents.map((doc) => (
+                <div key={doc._id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-slate-400" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">{doc.title}</p>
+                      <p className="text-xs text-slate-500">{new Date(doc.createdAt).toLocaleDateString()} • {Math.round(doc.size / 1024)} KB</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={documentService.getDownloadUrl(doc._id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-slate-500 hover:text-blue-600 transition-colors"
+                      title="Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                    {(isAdmin || isHRManager) && (
+                      <button
+                        onClick={() => handleDeleteDocument(doc._id)}
+                        className="p-2 text-slate-500 hover:text-red-600 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
       </motion.div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Upload Document</h3>
+            <form onSubmit={handleUploadDocument} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={newDocTitle}
+                  onChange={(e) => setNewDocTitle(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                  placeholder="e.g. Contract, Resume"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">File</label>
+                <input
+                  type="file"
+                  onChange={(e) => setNewDocFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

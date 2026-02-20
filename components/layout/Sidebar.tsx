@@ -18,6 +18,7 @@ import {
   FileCheck,
   Target,
   ListTodo,
+  CalendarRange,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Payroll Processing', href: '/allotments', icon: FileCheck, roles: [Role.ADMIN, Role.HR_MANAGER] },
   { name: 'Performance', href: '/performance', icon: TrendingUp, roles: [Role.ADMIN, Role.HR_MANAGER] },
   { name: 'Recruitment', href: '/recruitment', icon: Briefcase, roles: [Role.ADMIN, Role.HR_MANAGER] },
+  { name: 'Calendar', href: '/calendar', icon: CalendarRange, roles: [Role.ADMIN, Role.HR_MANAGER, Role.CLERK, Role.EMPLOYEE] },
   { name: 'Chat', href: '/chat', icon: MessageSquare, roles: [Role.ADMIN, Role.HR_MANAGER, Role.CLERK, Role.EMPLOYEE] },
   { name: 'Group Chat', href: '/group-chat', icon: UsersRound, roles: [Role.ADMIN, Role.HR_MANAGER, Role.CLERK, Role.EMPLOYEE] },
 ];

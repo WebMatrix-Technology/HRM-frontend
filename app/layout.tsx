@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { IdleTimerProvider } from '@/components/providers/IdleTimerProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -15,9 +17,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth dark">
-      <body className={`${inter.className} matrix-pattern`}>{children}</body>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <body className={`${inter.className} matrix-pattern`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <IdleTimerProvider>
+            {children}
+          </IdleTimerProvider>
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
-
