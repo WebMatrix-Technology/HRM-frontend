@@ -29,6 +29,7 @@ export default function AttendancePage() {
   const [canPunchIn, setCanPunchIn] = useState(true);
   const [canPunchOut, setCanPunchOut] = useState(false);
   const [workFromHome, setWorkFromHome] = useState(false);
+  const [isOnBreak, setIsOnBreak] = useState(false);
 
   const { idleSeconds, resetIdleTime } = useIdleTimer();
 
@@ -61,6 +62,8 @@ export default function AttendancePage() {
         setTodayAttendance(todayRecord);
         setCanPunchIn(!todayRecord.punchIn);
         setCanPunchOut(!!todayRecord.punchIn && !todayRecord.punchOut);
+        const activeBreak = todayRecord.breaks?.find((b) => !b.endTime);
+        setIsOnBreak(!!activeBreak);
       }
     } catch (error) {
       console.error('Failed to check today attendance:', error);
@@ -85,6 +88,26 @@ export default function AttendancePage() {
       await loadAttendance();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to punch out');
+    }
+  };
+
+  const handleStartBreak = async () => {
+    try {
+      await attendanceService.startBreak();
+      await checkTodayAttendance();
+      await loadAttendance();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to start break');
+    }
+  };
+
+  const handleEndBreak = async () => {
+    try {
+      await attendanceService.endBreak();
+      await checkTodayAttendance();
+      await loadAttendance();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to end break');
     }
   };
 
@@ -188,12 +211,31 @@ export default function AttendancePage() {
                   </button>
                 </div>
               )}
+              {canPunchOut && !isOnBreak && (
+                <button
+                  onClick={handleStartBreak}
+                  className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition-colors shadow-lg flex items-center justify-center"
+                >
+                  <Coffee className="w-5 h-5 mr-2" />
+                  Start Break
+                </button>
+              )}
+              {canPunchOut && isOnBreak && (
+                <button
+                  onClick={handleEndBreak}
+                  className="px-6 py-3 bg-amber-700 text-white rounded-lg font-semibold hover:bg-amber-800 transition-colors shadow-lg flex items-center justify-center"
+                >
+                  <Coffee className="w-5 h-5 mr-2" />
+                  End Break
+                </button>
+              )}
               {canPunchOut && (
                 <button
                   onClick={handlePunchOut}
-                  className="px-6 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors shadow-lg"
+                  disabled={isOnBreak}
+                  className={`px-6 py-3 ${isOnBreak ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-500 text-white hover:bg-red-600'} rounded-lg font-semibold transition-colors shadow-lg flex items-center justify-center`}
                 >
-                  <LogOut className="w-5 h-5 inline mr-2" />
+                  <LogOut className="w-5 h-5 mr-2" />
                   Punch Out
                 </button>
               )}

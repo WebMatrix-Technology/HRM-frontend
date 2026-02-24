@@ -18,7 +18,42 @@ export const holidayService = {
         if (month) params.month = month;
 
         const response = await api.get('/holidays', { params });
-        return response.data.data;
+        let allHolidays = response.data.data || [];
+
+        // Fetch public Indian holidays and merge
+        if (year) {
+            try {
+                const publicHolidaysRes = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/IN`);
+                if (publicHolidaysRes.ok) {
+                    const publicData = await publicHolidaysRes.json();
+
+                    const mappedPublicHolidays: Holiday[] = publicData.map((h: any) => ({
+                        _id: `IN-${h.date}-${h.name}`,
+                        title: h.name,
+                        date: h.date,
+                        type: 'HOLIDAY',
+                        description: 'Public Holiday (India)',
+                        isRecurring: true,
+                        createdBy: 'system',
+                        createdAt: new Date().toISOString()
+                    }));
+
+                    // Filter by month if month is provided
+                    const filteredPublicHolidays = month
+                        ? mappedPublicHolidays.filter(h => new Date(h.date).getMonth() + 1 === month)
+                        : mappedPublicHolidays;
+
+                    allHolidays = [...allHolidays, ...filteredPublicHolidays];
+
+                    // Sort holidays by date
+                    allHolidays.sort((a: Holiday, b: Holiday) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                }
+            } catch (error) {
+                console.error("Failed to fetch public Indian holidays:", error);
+            }
+        }
+
+        return allHolidays;
     },
 
     createHoliday: async (data: Omit<Holiday, '_id' | 'createdAt' | 'createdBy' | 'createdAt'>) => {

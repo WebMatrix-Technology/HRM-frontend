@@ -8,6 +8,7 @@ export interface Attendance {
   punchOut?: string;
   workFromHome: boolean;
   status: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY';
+  breaks?: { startTime: string; endTime?: string }[];
   idleTime?: number;
   productiveTime?: number;
 }
@@ -29,6 +30,16 @@ export const attendanceService = {
 
   punchOut: async (idleTime: number = 0): Promise<Attendance> => {
     const response = await api.post('/attendance/punch-out', { idleTime });
+    return response.data.data;
+  },
+
+  startBreak: async (): Promise<Attendance> => {
+    const response = await api.post('/attendance/start-break');
+    return response.data.data;
+  },
+
+  endBreak: async (): Promise<Attendance> => {
+    const response = await api.post('/attendance/end-break');
     return response.data.data;
   },
 
