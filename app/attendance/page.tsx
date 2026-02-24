@@ -127,11 +127,22 @@ export default function AttendancePage() {
   };
 
   const formatDuration = (seconds?: number) => {
-    if (seconds === undefined || seconds < 0) return '-';
+    if (seconds === undefined || seconds <= 0) return '-';
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     if (hrs > 0) return `${hrs}h ${mins}m`;
     return `${mins}m`;
+  };
+
+  const calculateTotalBreakTime = (breaks?: { startTime: string; endTime?: string }[]) => {
+    if (!breaks || breaks.length === 0) return undefined;
+    let totalSeconds = 0;
+    for (const b of breaks) {
+      const start = new Date(b.startTime).getTime();
+      const end = b.endTime ? new Date(b.endTime).getTime() : new Date().getTime();
+      totalSeconds += Math.floor((end - start) / 1000);
+    }
+    return totalSeconds > 0 ? totalSeconds : undefined;
   };
 
   const presentDays = attendance.filter((a) => a.status === 'PRESENT').length;
@@ -315,7 +326,7 @@ export default function AttendancePage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Punch In</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Punch Out</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Prod. Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Idle Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Break Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Location</th>
                 </tr>
@@ -348,10 +359,10 @@ export default function AttendancePage() {
                         ) : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-600 dark:text-amber-400 font-medium">
-                        {record.idleTime !== undefined ? (
+                        {calculateTotalBreakTime(record.breaks) !== undefined ? (
                           <span className="flex items-center gap-1">
                             <Coffee className="w-4 h-4" />
-                            {formatDuration(record.idleTime)}
+                            {formatDuration(calculateTotalBreakTime(record.breaks))}
                           </span>
                         ) : '-'}
                       </td>
