@@ -18,6 +18,9 @@ export interface Leave {
     firstName: string;
     lastName: string;
     employeeId: string;
+    userId?: {
+      role: string;
+    };
   };
 }
 
@@ -45,16 +48,24 @@ export const leaveService = {
     if (status) params.append('status', status);
 
     const response = await api.get(`/leave?${params}`);
-    return response.data.data;
+    return response.data.data.map((item: any) => {
+      const employeeObj = typeof item.employeeId === 'object' ? item.employeeId : item.employee;
+      const actualEmployeeId = typeof item.employeeId === 'object' ? (item.employeeId._id || item.employeeId.id) : item.employeeId;
+      return {
+        ...item,
+        employee: employeeObj,
+        employeeId: actualEmployeeId,
+      };
+    });
   },
 
   approveLeave: async (leaveId: string): Promise<Leave> => {
-    const response = await api.put(`/leave/${leaveId}/approve`);
+    const response = await api.post(`/leave/${leaveId}/approve`);
     return response.data.data;
   },
 
   rejectLeave: async (leaveId: string, rejectionReason: string): Promise<Leave> => {
-    const response = await api.put(`/leave/${leaveId}/reject`, { rejectionReason });
+    const response = await api.post(`/leave/${leaveId}/reject`, { rejectionReason });
     return response.data.data;
   },
 

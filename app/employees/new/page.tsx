@@ -24,6 +24,7 @@ import {
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { employeeService, CreateEmployeeData } from '@/services/employee.service';
+import DatePicker from '@/components/ui/DatePicker';
 
 export default function AddEmployeePage() {
   const router = useRouter();
@@ -227,6 +228,7 @@ export default function AddEmployeePage() {
                       className="block w-full pl-10 pr-12 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       placeholder="Enter password"
                       value={formData.password}
+                      autoComplete="new-password"
                       onChange={handleChange}
                     />
                     <button
@@ -357,19 +359,12 @@ export default function AddEmployeePage() {
                   <label htmlFor="dateOfBirth" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Date of Birth
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                      type="date"
-                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      value={formData.dateOfBirth}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  <DatePicker
+                    value={formData.dateOfBirth || ''}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
+                    placeholder="Select date of birth"
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
             </div>

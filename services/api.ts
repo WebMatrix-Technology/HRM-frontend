@@ -748,10 +748,14 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized - clear tokens and redirect to login
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
+      // But skip if we're already on the login page (e.g. wrong credentials)
+      const isOnLoginPage = typeof window !== 'undefined' && window.location.pathname.includes('/auth/login');
+      if (!isOnLoginPage) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
       }
     }
     return Promise.reject(error);

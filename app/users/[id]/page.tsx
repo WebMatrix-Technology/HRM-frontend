@@ -129,6 +129,8 @@ export default function UserDetailPage() {
     switch (role) {
       case 'ADMIN':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'MANAGER':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'HR_MANAGER':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'EMPLOYEE':

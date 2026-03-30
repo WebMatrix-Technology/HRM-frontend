@@ -54,7 +54,7 @@ export interface PayrollFormData {
 
 export const payrollService = {
   processPayroll: async (data: ProcessPayrollData): Promise<Payroll> => {
-    const response = await api.post('/payroll/process', data);
+    const response = await api.post('/payroll', data);
     return response.data.data;
   },
 

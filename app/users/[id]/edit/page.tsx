@@ -21,6 +21,10 @@ import {
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { employeeService, Employee, UpdateEmployeeData } from '@/services/employee.service';
+import { userService } from '@/services/user.service';
+import { useAuthStore } from '@/store/authStore';
+import { Role } from '@/types';
+import DatePicker from '@/components/ui/DatePicker';
 
 const DEFAULT_DEPARTMENTS = [
   'Administration',
@@ -40,11 +44,16 @@ export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = params.id as string;
+  const { user: currentUser } = useAuthStore();
+  const isAdmin = currentUser?.role === Role.ADMIN;
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [error, setError] = useState('');
   const [departments, setDepartments] = useState<string[]>([]);
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [originalRole, setOriginalRole] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
 
   // Form fields
   const [formData, setFormData] = useState<UpdateEmployeeData>({
@@ -87,6 +96,11 @@ export default function EditEmployeePage() {
       const dateOfBirth = employee.dateOfBirth
         ? new Date(employee.dateOfBirth).toISOString().split('T')[0]
         : '';
+
+      const role = employee.user?.role || 'EMPLOYEE';
+      setSelectedRole(role);
+      setOriginalRole(role);
+      setUserId(employee.user?.id || '');
 
       setFormData({
         firstName: employee.firstName || '',
@@ -164,6 +178,12 @@ export default function EditEmployeePage() {
       };
 
       await employeeService.updateEmployee(employeeId, submitData);
+
+      // Update role if changed (admin only)
+      if (isAdmin && selectedRole !== originalRole && userId) {
+        await userService.updateUser(userId, { role: selectedRole as Role });
+      }
+
       router.push('/users');
     } catch (err: any) {
       console.error('Update employee error:', err);
@@ -327,19 +347,12 @@ export default function EditEmployeePage() {
                   <label htmlFor="dateOfBirth" className="block text-sm font-medium text-cyan-300 mb-2">
                     Date of Birth
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-cyan-400/50" />
-                    </div>
-                    <input
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                      type="date"
-                      className="block w-full pl-10 pr-3 py-2.5 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-                      value={formData.dateOfBirth}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  <DatePicker
+                    value={formData.dateOfBirth || ''}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
+                    placeholder="Select date of birth"
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
             </div>
@@ -526,6 +539,25 @@ export default function EditEmployeePage() {
                     />
                   </div>
                 </div>
+
+                {isAdmin && (
+                  <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-cyan-300 mb-2">
+                      Role
+                    </label>
+                    <select
+                      id="role"
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      className="block w-full px-3 py-2.5 border border-dark-border rounded-lg bg-dark-surface text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                    >
+                      <option value="EMPLOYEE">Employee</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="HR_MANAGER">HR Manager</option>
+                      <option value="CLERK">Clerk</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="md:col-span-2">
                   <label className="flex items-center gap-3 cursor-pointer">

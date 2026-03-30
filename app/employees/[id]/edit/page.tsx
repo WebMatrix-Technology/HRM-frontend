@@ -21,12 +21,13 @@ import {
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { employeeService, Employee, UpdateEmployeeData } from '@/services/employee.service';
+import DatePicker from '@/components/ui/DatePicker';
 
 export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = params.id as string;
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [error, setError] = useState('');
@@ -59,7 +60,7 @@ export default function EditEmployeePage() {
     try {
       setLoadingEmployee(true);
       const employee = await employeeService.getEmployeeById(employeeId);
-      
+
       // Check if employee is an admin - admins cannot be edited
       if (employee.user?.role === 'ADMIN') {
         setError('Admin users cannot be edited');
@@ -68,9 +69,9 @@ export default function EditEmployeePage() {
         }, 2000);
         return;
       }
-      
+
       // Format dateOfBirth for input field (YYYY-MM-DD)
-      const dateOfBirth = employee.dateOfBirth 
+      const dateOfBirth = employee.dateOfBirth
         ? new Date(employee.dateOfBirth).toISOString().split('T')[0]
         : '';
 
@@ -111,8 +112,8 @@ export default function EditEmployeePage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'salary' ? (value ? parseFloat(value) : undefined) : 
-              name === 'isActive' ? (e.target as HTMLInputElement).checked : value,
+      [name]: name === 'salary' ? (value ? parseFloat(value) : undefined) :
+        name === 'isActive' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -309,19 +310,12 @@ export default function EditEmployeePage() {
                   <label htmlFor="dateOfBirth" className="block text-sm font-medium text-cyan-300 mb-2">
                     Date of Birth
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-cyan-400/50" />
-                    </div>
-                    <input
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                      type="date"
-                      className="block w-full pl-10 pr-3 py-2.5 border border-dark-border rounded-lg bg-dark-surface text-white placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-                      value={formData.dateOfBirth}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  <DatePicker
+                    value={formData.dateOfBirth || ''}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, dateOfBirth: val }))}
+                    placeholder="Select date of birth"
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
             </div>

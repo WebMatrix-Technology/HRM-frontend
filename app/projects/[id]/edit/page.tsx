@@ -8,12 +8,13 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authStore';
 import { Role, Project, ProjectStatus, ProjectPriority, UpdateProjectData } from '@/types';
 import { projectService } from '@/services/project.service';
+import DatePicker from '@/components/ui/DatePicker';
 import { employeeService } from '@/services/employee.service';
 
 export default function EditProjectPage() {
   const router = useRouter();
   const params = useParams();
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, employee: currentEmployee, isLoading, fetchUser } = useAuthStore();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,21 +30,32 @@ export default function EditProjectPage() {
     endDate: '',
     deadline: '',
     budget: 0,
-    managerId: '',
     progress: 0,
     tags: [],
+    memberIds: [],
   });
 
   const [availableManagers, setAvailableManagers] = useState<any[]>([]);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
   const projectId = params.id as string;
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHRManager = currentUser?.role === Role.HR_MANAGER;
-  const canAccess = isAdmin || isHRManager;
+  const isManager = currentUser?.role === Role.MANAGER;
+  const canAccess = isAdmin || isManager;
 
   useEffect(() => {
+    if (isLoading) return;
+
+    // If authenticated but no user data yet, fetch it
+    if (!currentUser) {
+      fetchUser();
+      return;
+    }
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
@@ -51,13 +63,20 @@ export default function EditProjectPage() {
 
     loadProject();
     loadManagers();
-  }, [projectId, canAccess]);
+    loadEmployees();
+  }, [projectId, canAccess, isLoading, currentUser]);
 
   const loadProject = async () => {
     try {
       setLoading(true);
       const projectData = await projectService.getProject(projectId);
       setProject(projectData);
+
+      const mId = projectData.manager?.id || (projectData.manager as any)?._id || (typeof projectData.manager === 'string' ? projectData.manager : '');
+      if (isManager && currentEmployee && mId !== currentEmployee.id && mId !== (currentEmployee as any)._id) {
+        router.replace(`/projects/${projectId}`);
+        return;
+      }
 
       // Populate form with existing data
       setFormData({
@@ -74,6 +93,7 @@ export default function EditProjectPage() {
       });
 
       setTags(projectData.tags || []);
+      setSelectedMembers(projectData.members?.map((m: any) => m.employee?.id || (m.employee as any)?._id) || []);
     } catch (err: any) {
       console.error('Failed to load project:', err);
       setError(err.response?.data?.error || 'Failed to load project details');
@@ -89,6 +109,26 @@ export default function EditProjectPage() {
     } catch (error) {
       console.error('Failed to load managers:', error);
     }
+  };
+
+  const loadEmployees = async () => {
+    try {
+      setLoadingEmployees(true);
+      const response = await employeeService.getEmployees(1, 1000, { isActive: true });
+      setAvailableEmployees(response.employees || []);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const toggleMember = (employeeId: string) => {
+    setSelectedMembers(prev =>
+      prev.includes(employeeId)
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,6 +158,7 @@ export default function EditProjectPage() {
       const updateData: UpdateProjectData = {
         ...formData,
         tags: tags.length > 0 ? tags : undefined,
+        memberIds: selectedMembers,
       };
 
       await projectService.updateProject(projectId, updateData);
@@ -367,51 +408,45 @@ export default function EditProjectPage() {
                     max="100"
                     value={formData.progress}
                     onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
-                    className="block w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                    disabled={saving}
+                    className="block w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-not-allowed opacity-80"
+                    disabled={true}
                   />
+                  <p className="text-xs text-slate-500 mt-2">
+                    Progress is automatically calculated based on completed PBI tasks.
+                  </p>
                 </div>
 
                 {/* Dates */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Start Date *
                     </label>
-                    <input
-                      id="startDate"
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    <DatePicker
+                      value={formData.startDate || ''}
+                      onChange={(val) => setFormData({ ...formData, startDate: val })}
                       disabled={saving}
                       required
                     />
                   </div>
                   <div>
-                    <label htmlFor="endDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       End Date
                     </label>
-                    <input
-                      id="endDate"
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                      className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    <DatePicker
+                      value={formData.endDate || ''}
+                      onChange={(val) => setFormData({ ...formData, endDate: val })}
                       disabled={saving}
                     />
                   </div>
                   <div>
-                    <label htmlFor="deadline" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Deadline
                     </label>
-                    <input
-                      id="deadline"
-                      type="date"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                    <DatePicker
+                      value={formData.deadline || ''}
+                      onChange={(val) => setFormData({ ...formData, deadline: val })}
                       min={formData.startDate}
-                      className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       disabled={saving}
                     />
                   </div>
@@ -440,6 +475,48 @@ export default function EditProjectPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Team Members */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Team Members ({selectedMembers.length} selected)
+                  </label>
+                  <div className="border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 max-h-48 overflow-y-auto mb-4">
+                    {loadingEmployees ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                      </div>
+                    ) : availableEmployees.length === 0 ? (
+                      <p className="p-4 text-sm text-slate-500 text-center text-slate-500">No employees found.</p>
+                    ) : (
+                      availableEmployees.map((employee) => (
+                        <label
+                          key={employee.id}
+                          className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-200 dark:border-slate-700 last:border-b-0"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMembers.includes(employee.id)}
+                            onChange={() => toggleMember(employee.id)}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                            disabled={saving}
+                          />
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                            {employee.firstName[0]}{employee.lastName[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                              {employee.firstName} {employee.lastName}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {employee.position || 'Employee'}
+                            </p>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
 
                 {/* Budget */}

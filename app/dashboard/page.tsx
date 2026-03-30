@@ -15,10 +15,12 @@ import {
   ArrowRight,
   UserCheck,
   ClockCheck,
+  Target,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { dashboardService, DashboardStats } from '@/services/dashboard.service';
+import { Role } from '@/types';
 
 const dashboardCards = [
   {
@@ -84,6 +86,26 @@ const dashboardCards = [
     bgColor: 'bg-orange-50 dark:bg-orange-900/20',
     iconColor: 'text-orange-600 dark:text-orange-400',
   },
+  {
+    name: 'Projects',
+    href: '/projects',
+    icon: Briefcase,
+    description: 'Manage and track projects',
+    color: 'from-purple-500 to-indigo-600',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+    iconColor: 'text-purple-600 dark:text-purple-400',
+    roles: [Role.ADMIN, Role.MANAGER],
+  },
+  {
+    name: 'Product Backlog',
+    href: '/pbi',
+    icon: Target,
+    description: 'Manage tasks and backlog',
+    color: 'from-blue-500 to-cyan-600',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    iconColor: 'text-blue-600 dark:text-blue-400',
+    roles: [Role.ADMIN, Role.MANAGER],
+  },
 ];
 
 export default function DashboardPage() {
@@ -101,14 +123,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkAuth = async () => {
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       if (!isMounted) return;
-      
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      
+
       if (token) {
         if (isAuthenticated && !user) {
           try {
@@ -128,7 +150,7 @@ export default function DashboardPage() {
         }
         return;
       }
-      
+
       if (!token && !isAuthenticated) {
         if (isMounted) {
           router.replace('/auth/login');
@@ -137,7 +159,7 @@ export default function DashboardPage() {
     };
 
     checkAuth();
-    
+
     return () => {
       isMounted = false;
     };
@@ -277,23 +299,25 @@ export default function DashboardPage() {
             <p className="text-sm text-cyan-400/70">On Leave</p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/20">
-                <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          {(user?.role === Role.ADMIN || user?.role === Role.HR_MANAGER) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              className="glass rounded-2xl p-6 shadow-lg shadow-primary-500/10"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/20">
+                  <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
               </div>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-1">
-              {loadingStats ? '...' : stats.pendingRequests}
-            </h3>
-            <p className="text-sm text-cyan-400/70">Pending Requests</p>
-          </motion.div>
+              <h3 className="text-2xl font-bold text-white mb-1">
+                {loadingStats ? '...' : stats.pendingRequests}
+              </h3>
+              <p className="text-sm text-cyan-400/70">Pending Requests</p>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Quick Actions */}
@@ -302,37 +326,39 @@ export default function DashboardPage() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {dashboardCards.map((card, index) => {
-              const Icon = card.icon;
-              return (
-                <motion.div
-                  key={card.name}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.05, y: -8 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link href={card.href}>
-                    <div className="glass rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:shadow-primary-500/20 transition-all duration-300 group cursor-pointer h-full hover:border-cyan-500/50">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-6 h-6 text-white" />
+            {dashboardCards
+              .filter(card => !card.roles || (user?.role && card.roles.includes(user.role)))
+              .map((card, index) => {
+                const Icon = card.icon;
+                return (
+                  <motion.div
+                    key={card.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ scale: 1.05, y: -8 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Link href={card.href}>
+                      <div className="glass rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:shadow-primary-500/20 transition-all duration-300 group cursor-pointer h-full hover:border-cyan-500/50">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          {card.name}
+                        </h3>
+                        <p className="text-sm text-cyan-400/70 mb-4">
+                          {card.description}
+                        </p>
+                        <div className="flex items-center gradient-text font-medium text-sm group-hover:gap-2 transition-all">
+                          <span>Open</span>
+                          <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
-                      <h3 className="text-xl font-semibold text-white mb-2">
-                        {card.name}
-                      </h3>
-                      <p className="text-sm text-cyan-400/70 mb-4">
-                        {card.description}
-                      </p>
-                      <div className="flex items-center gradient-text font-medium text-sm group-hover:gap-2 transition-all">
-                        <span>Open</span>
-                        <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
+                    </Link>
+                  </motion.div>
+                );
+              })}
           </div>
         </motion.div>
       </motion.div>

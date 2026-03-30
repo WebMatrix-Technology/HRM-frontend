@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Users } from 'lucide-react';
 
 export default function PublicHeader() {
@@ -16,7 +15,6 @@ export default function PublicHeader() {
                         </h1>
                     </Link>
                     <div className="flex items-center space-x-6">
-                        <ThemeToggle />
                         <Link
                             href="/careers"
                             className="hidden md:block text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"

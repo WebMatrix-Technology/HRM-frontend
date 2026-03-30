@@ -17,6 +17,7 @@ import {
   Check,
   Coffee,
   Activity,
+  Download,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useIdleTimer } from '@/components/providers/IdleTimerProvider';
@@ -30,6 +31,10 @@ export default function AttendancePage() {
   const [canPunchOut, setCanPunchOut] = useState(false);
   const [workFromHome, setWorkFromHome] = useState(false);
   const [isOnBreak, setIsOnBreak] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(String(currentDate.getMonth() + 1).padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState(String(currentDate.getFullYear()));
 
   const { idleSeconds, resetIdleTime } = useIdleTimer();
 
@@ -76,7 +81,7 @@ export default function AttendancePage() {
       await checkTodayAttendance();
       await loadAttendance();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to punch in');
+      alert(error.response?.data?.error || error.message || 'Action failed');
     }
   };
 
@@ -87,7 +92,7 @@ export default function AttendancePage() {
       await checkTodayAttendance();
       await loadAttendance();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to punch out');
+      alert(error.response?.data?.error || error.message || 'Action failed');
     }
   };
 
@@ -97,7 +102,7 @@ export default function AttendancePage() {
       await checkTodayAttendance();
       await loadAttendance();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to start break');
+      alert(error.response?.data?.error || error.message || 'Action failed');
     }
   };
 
@@ -107,7 +112,22 @@ export default function AttendancePage() {
       await checkTodayAttendance();
       await loadAttendance();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to end break');
+      alert(error.response?.data?.error || error.message || 'Action failed');
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      if (!selectedMonth || !selectedYear) {
+        alert('Please select a valid month and year');
+        return;
+      }
+      setDownloading(true);
+      await attendanceService.exportAttendance(parseInt(selectedMonth, 10), parseInt(selectedYear, 10));
+    } catch (error: any) {
+      alert('Failed to download attendance sheet');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -148,20 +168,83 @@ export default function AttendancePage() {
   const presentDays = attendance.filter((a) => a.status === 'PRESENT').length;
   const absentDays = attendance.filter((a) => a.status === 'ABSENT').length;
 
+  const currentYear = new Date().getFullYear();
+  const currentMonthNum = new Date().getMonth() + 1;
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const allMonths = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
+  const availableMonths = selectedYear === String(currentYear) 
+    ? allMonths.filter(m => parseInt(m.value) <= currentMonthNum)
+    : allMonths;
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newYear = e.target.value;
+    setSelectedYear(newYear);
+    if (newYear === String(currentYear) && parseInt(selectedMonth) > currentMonthNum) {
+      setSelectedMonth(String(currentMonthNum).padStart(2, '0'));
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              Attendance
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">
+              Track your daily attendance and work hours
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+              <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-4 py-3 bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none border-r border-slate-200 dark:border-slate-700 appearance-none min-w-[120px]"
+                title="Select Month"
+              >
+                {availableMonths.map(m => (
+                  <option key={m.value} value={m.value} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{m.label}</option>
+                ))}
+              </select>
+              <select 
+                value={selectedYear}
+                onChange={handleYearChange}
+                className="px-4 py-3 bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none appearance-none"
+                title="Select Year"
+              >
+                {years.map(y => (
+                  <option key={y} value={y} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{y}</option>
+                ))}
+              </select>
             </div>
-            Attendance
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Track your daily attendance and work hours
-          </p>
+            <button
+              onClick={handleDownload}
+              disabled={downloading || !selectedMonth || !selectedYear}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-medium shadow-lg hover:bg-green-700 disabled:opacity-50 transition-all"
+            >
+              <Download className="w-5 h-5" />
+              {downloading ? 'Downloading...' : 'Export Sheet'}
+            </button>
+          </div>
         </div>
 
         {/* Punch In/Out Card */}
@@ -255,7 +338,7 @@ export default function AttendancePage() {
         </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -273,22 +356,6 @@ export default function AttendancePage() {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Absent Days</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-                  {absentDays}
-                </p>
-              </div>
-              <XCircle className="w-8 h-8 text-red-600" />
-            </div>
-          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -339,8 +406,8 @@ export default function AttendancePage() {
                     </td>
                   </tr>
                 ) : (
-                  attendance.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  attendance.map((record, index) => (
+                    <tr key={record.id || (record as any)._id || index} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
                         {new Date(record.date).toLocaleDateString()}
                       </td>

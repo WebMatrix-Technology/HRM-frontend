@@ -2,7 +2,8 @@ import api from './api';
 
 export interface Performance {
   id: string;
-  employeeId: string;
+  _id?: string;
+  employeeId: any;
   reviewPeriod: string;
   rating: number;
   goals: string[];
@@ -16,6 +17,9 @@ export interface Performance {
     firstName: string;
     lastName: string;
     employeeId: string;
+    userId?: {
+      role: string;
+    };
   };
 }
 
@@ -38,23 +42,43 @@ export const performanceService = {
     feedback?: string;
   }): Promise<Performance> => {
     const response = await api.post('/performance', data);
-    return response.data.data;
+    const p = response.data.data;
+    const transformed = { 
+      ...p, 
+      id: p.id || p._id,
+      employee: typeof p.employeeId === 'object' ? p.employeeId : p.employee
+    };
+    return transformed;
   },
 
   getPerformances: async (employeeId?: string): Promise<Performance[]> => {
     const params = employeeId ? `?employeeId=${employeeId}` : '';
     const response = await api.get(`/performance${params}`);
-    return response.data.data;
+    return response.data.data.map((p: any) => ({
+      ...p,
+      id: p.id || p._id,
+      employee: typeof p.employeeId === 'object' ? p.employeeId : p.employee
+    }));
   },
 
   getPerformanceById: async (id: string): Promise<Performance> => {
     const response = await api.get(`/performance/${id}`);
-    return response.data.data;
+    const p = response.data.data;
+    return { 
+      ...p, 
+      id: p.id || p._id,
+      employee: typeof p.employeeId === 'object' ? p.employeeId : p.employee
+    };
   },
 
   updatePerformance: async (id: string, data: Partial<Performance>): Promise<Performance> => {
     const response = await api.put(`/performance/${id}`, data);
-    return response.data.data;
+    const p = response.data.data;
+    return { 
+      ...p, 
+      id: p.id || p._id,
+      employee: typeof p.employeeId === 'object' ? p.employeeId : p.employee
+    };
   },
 
   getAnalytics: async (): Promise<PerformanceAnalytics> => {

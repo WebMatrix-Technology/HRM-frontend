@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Target, AlertCircle, CheckCircle, Loader2, ListTodo, Calendar, User } from 'lucide-react';
 import { projectService } from '@/services/project.service';
-import { taskService, TaskStatus, TaskPriority, CreateTaskData } from '@/services/task.service';
+import { taskService, Task, TaskStatus, TaskPriority, CreateTaskData } from '@/services/task.service';
 import { employeeService } from '@/services/employee.service';
 import { Project } from '@/types';
 
@@ -13,6 +13,7 @@ interface CreateTaskModalProps {
     onClose: () => void;
     onTaskCreated: () => void;
     defaultProjectId?: string; // Optional default project to select
+    editTask?: Task | null; // If provided, modal is in edit mode
 }
 
 export default function CreateTaskModal({
@@ -20,17 +21,46 @@ export default function CreateTaskModal({
     onClose,
     onTaskCreated,
     defaultProjectId,
+    editTask,
 }: CreateTaskModalProps) {
-    const [formData, setFormData] = useState<CreateTaskData>({
-        title: '',
-        description: '',
-        status: TaskStatus.BACKLOG,
-        priority: TaskPriority.MEDIUM,
-        storyPoints: 0,
-        projectId: defaultProjectId || '',
-        assigneeId: '',
-        tags: [],
-    });
+    const isEditMode = !!editTask;
+
+    const getInitialFormData = (): CreateTaskData => {
+        if (editTask) {
+            const projectId = editTask.projectId
+                ? (typeof editTask.projectId === 'string'
+                    ? editTask.projectId
+                    : (editTask.projectId as any)._id || (editTask.projectId as any).id)
+                : '';
+            const assigneeId = editTask.assigneeId
+                ? (typeof editTask.assigneeId === 'string'
+                    ? editTask.assigneeId
+                    : (editTask.assigneeId as any)._id)
+                : '';
+            return {
+                title: editTask.title,
+                description: editTask.description || '',
+                status: editTask.status,
+                priority: editTask.priority,
+                storyPoints: editTask.storyPoints || 0,
+                projectId,
+                assigneeId,
+                tags: editTask.tags || [],
+            };
+        }
+        return {
+            title: '',
+            description: '',
+            status: TaskStatus.BACKLOG,
+            priority: TaskPriority.MEDIUM,
+            storyPoints: 0,
+            projectId: defaultProjectId || '',
+            assigneeId: '',
+            tags: [],
+        };
+    };
+
+    const [formData, setFormData] = useState<CreateTaskData>(getInitialFormData());
 
     const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
     const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
@@ -43,29 +73,53 @@ export default function CreateTaskModal({
     useEffect(() => {
         if (isOpen) {
             loadInitialData();
-            if (defaultProjectId) {
-                setFormData(prev => ({ ...prev, projectId: defaultProjectId }));
-            }
+            setFormData(getInitialFormData());
         }
-    }, [isOpen, defaultProjectId]);
+    }, [isOpen, defaultProjectId, editTask]);
 
     const loadInitialData = async () => {
         try {
             setLoadingData(true);
-            const [projectsResponse, employeesResponse] = await Promise.all([
-                projectService.getProjects(1, 1000), // Get all projects
-                employeeService.getEmployees(1, 1000, { isActive: true })
-            ]);
-
+            const projectsResponse = await projectService.getProjects(1, 1000); // Get all projects
             setAvailableProjects(projectsResponse.projects);
-            setAvailableEmployees(employeesResponse.employees);
         } catch (error) {
-            console.error('Failed to load data:', error);
-            setError('Failed to load projects and employees');
+            console.error('Failed to load projects:', error);
+            setError('Failed to load projects');
         } finally {
             setLoadingData(false);
         }
     };
+
+    useEffect(() => {
+        if (!formData.projectId) {
+            setAvailableEmployees([]);
+            return;
+        }
+
+        const loadProjectMembers = async () => {
+            try {
+                const project = await projectService.getProject(formData.projectId);
+                if (project && project.members) {
+                    const members = project.members.map((m: any) => m.employee);
+                    setAvailableEmployees(members);
+
+                    // If currently selected assignee is not in the new list, clear them
+                    setFormData(prev => {
+                        if (prev.assigneeId && !members.find((m: any) => m.id === prev.assigneeId)) {
+                            return { ...prev, assigneeId: '' };
+                        }
+                        return prev;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load project members:', error);
+            }
+        };
+
+        if (isOpen) {
+            loadProjectMembers();
+        }
+    }, [formData.projectId, isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -86,15 +140,21 @@ export default function CreateTaskModal({
         try {
             setLoading(true);
 
-            await taskService.createTask({
+            const submitData = {
                 ...formData,
                 description: formData.description || undefined,
                 assigneeId: formData.assigneeId || undefined,
                 storyPoints: Number(formData.storyPoints),
                 tags: formData.tags?.length ? formData.tags : undefined,
-            });
+            };
 
-            setSuccess('Task created successfully!');
+            if (isEditMode && editTask) {
+                await taskService.updateTask(editTask._id, submitData);
+                setSuccess('Task updated successfully!');
+            } else {
+                await taskService.createTask(submitData);
+                setSuccess('Task created successfully!');
+            }
 
             // Reset form
             setFormData({
@@ -103,7 +163,7 @@ export default function CreateTaskModal({
                 status: TaskStatus.BACKLOG,
                 priority: TaskPriority.MEDIUM,
                 storyPoints: 0,
-                projectId: defaultProjectId || '', // Reset to default if exists
+                projectId: defaultProjectId || '',
                 assigneeId: '',
                 tags: [],
             });
@@ -120,7 +180,7 @@ export default function CreateTaskModal({
             setError(
                 err.response?.data?.message ||
                 err.message ||
-                'Failed to create task. Please try again.'
+                (isEditMode ? 'Failed to update task.' : 'Failed to create task. Please try again.')
             );
         } finally {
             setLoading(false);
@@ -190,10 +250,10 @@ export default function CreateTaskModal({
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                                        Create New Task
+                                        {isEditMode ? 'Edit Task' : 'Create New Task'}
                                     </h3>
                                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                                        Add a new item to the backlog
+                                        {isEditMode ? 'Update task details' : 'Add a new item to the backlog'}
                                     </p>
                                 </div>
                             </div>
@@ -415,12 +475,12 @@ export default function CreateTaskModal({
                                         {loading ? (
                                             <>
                                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                                Creating Task...
+                                                {isEditMode ? 'Updating Task...' : 'Creating Task...'}
                                             </>
                                         ) : (
                                             <>
                                                 <ListTodo className="w-4 h-4" />
-                                                Create Task
+                                                {isEditMode ? 'Update Task' : 'Create Task'}
                                             </>
                                         )}
                                     </button>

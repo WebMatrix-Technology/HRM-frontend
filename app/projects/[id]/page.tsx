@@ -26,29 +26,45 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authStore';
 import { Role, Project, ProjectStatus, ProjectPriority } from '@/types';
 import { projectService } from '@/services/project.service';
+import { employeeService } from '@/services/employee.service';
 
 export default function ProjectDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, employee: currentEmployee, isLoading, fetchUser } = useAuthStore();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+  const [selectedNewMembers, setSelectedNewMembers] = useState<string[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [addingMembers, setAddingMembers] = useState(false);
 
   const projectId = params.id as string;
   const isAdmin = currentUser?.role === Role.ADMIN;
-  const isHRManager = currentUser?.role === Role.HR_MANAGER;
-  const canAccess = isAdmin || isHRManager;
-  const canEdit = isAdmin || isHRManager;
+  const isManager = currentUser?.role === Role.MANAGER;
+  const canAccess = isAdmin || isManager;
+
+  const isProjectManager = isManager && project && currentEmployee && (project.manager?.id === currentEmployee.id || project.manager?.id === (currentEmployee as any)._id);
+  const canEdit = isAdmin || isProjectManager;
 
   useEffect(() => {
+    if (isLoading) return;
+
+    // If authenticated but no user data yet, fetch it
+    if (!currentUser) {
+      fetchUser();
+      return;
+    }
+
     if (!canAccess) {
       router.replace('/dashboard');
       return;
     }
 
     loadProject();
-  }, [projectId, canAccess]);
+  }, [projectId, canAccess, isLoading, currentUser]);
 
   const loadProject = async () => {
     try {
@@ -77,6 +93,50 @@ export default function ProjectDetailPage() {
     } catch (error) {
       console.error('Failed to delete project:', error);
       alert('Failed to delete project. Please try again.');
+    }
+  };
+
+  const openAddMembers = async () => {
+    setShowAddMembers(true);
+    setSelectedNewMembers([]);
+    try {
+      setLoadingEmployees(true);
+      const response = await employeeService.getEmployees(1, 1000, { isActive: true });
+      setAvailableEmployees(response.employees);
+    } catch (err) {
+      console.error('Failed to load employees:', err);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const handleAddMembers = async () => {
+    if (selectedNewMembers.length === 0) return;
+    try {
+      setAddingMembers(true);
+      await projectService.addProjectMembers(projectId, {
+        employeeIds: selectedNewMembers,
+        role: 'MEMBER',
+      });
+      setShowAddMembers(false);
+      setSelectedNewMembers([]);
+      await loadProject();
+    } catch (err: any) {
+      console.error('Failed to add members:', err);
+      alert(err.response?.data?.error || 'Failed to add members');
+    } finally {
+      setAddingMembers(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`Remove ${memberName} from this project?`)) return;
+    try {
+      await projectService.removeProjectMember(projectId, memberId);
+      await loadProject();
+    } catch (err: any) {
+      console.error('Failed to remove member:', err);
+      alert(err.response?.data?.error || 'Failed to remove member');
     }
   };
 
@@ -384,6 +444,7 @@ export default function ProjectDetailPage() {
             </h3>
             {canEdit && (
               <motion.button
+                onClick={openAddMembers}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
@@ -418,7 +479,10 @@ export default function ProjectDetailPage() {
                     </p>
                   </div>
                   {canEdit && (
-                    <button className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                    <button
+                      onClick={() => handleRemoveMember(member.id, `${member.employee.firstName} ${member.employee.lastName}`)}
+                      className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                    >
                       <UserMinus className="w-4 h-4" />
                     </button>
                   )}
@@ -451,6 +515,101 @@ export default function ProjectDetailPage() {
           </motion.div>
         )}
       </motion.div>
+
+      {/* Add Members Modal */}
+      {showAddMembers && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700"
+          >
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Add Team Members</h3>
+                  <p className="text-sm text-slate-500">Select employees to add to {project.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddMembers(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                <UserMinus className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5">
+              {loadingEmployees ? (
+                <div className="text-center py-8">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-3"
+                  />
+                  <p className="text-slate-500">Loading employees...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg max-h-64 overflow-y-auto">
+                    {availableEmployees
+                      .filter(emp => !project.members.some(m => (m.employee as any)._id === emp.id || m.employee.id === emp.id))
+                      .map((employee) => (
+                        <label
+                          key={employee.id}
+                          className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-200 dark:border-slate-700 last:border-b-0"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedNewMembers.includes(employee.id)}
+                            onChange={() =>
+                              setSelectedNewMembers(prev =>
+                                prev.includes(employee.id)
+                                  ? prev.filter(id => id !== employee.id)
+                                  : [...prev, employee.id]
+                              )
+                            }
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                          />
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {employee.firstName[0]}{employee.lastName[0]}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">
+                              {employee.firstName} {employee.lastName}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {employee.position || employee.department || 'Employee'}
+                            </p>
+                          </div>
+                        </label>
+                      ))}
+                    {availableEmployees.filter(emp => !project.members.some(m => (m.employee as any)._id === emp.id || m.employee.id === emp.id)).length === 0 && (
+                      <div className="p-6 text-center text-slate-500">
+                        All employees are already members of this project.
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={handleAddMembers}
+                      disabled={selectedNewMembers.length === 0 || addingMembers}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-lg font-medium disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    >
+                      {addingMembers ? 'Adding...' : `Add ${selectedNewMembers.length} Member${selectedNewMembers.length !== 1 ? 's' : ''}`}
+                    </button>
+                    <button
+                      onClick={() => setShowAddMembers(false)}
+                      className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

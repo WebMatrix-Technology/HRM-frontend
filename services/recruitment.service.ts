@@ -29,6 +29,8 @@ export interface Candidate {
   resumeUrl: string;
   coverLetter?: string;
   status: 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
+  interviewDate?: string;
+  interviewLocation?: string;
   notes: {
     text: string;
     author: string;
@@ -75,8 +77,8 @@ export const recruitmentService = {
     return response.data.data || response.data;
   },
 
-  updateCandidateStatus: async (id: string, status: string, note?: string) => {
-    const response = await api.put(`/recruitment/candidates/${id}/status`, { status, note });
+  updateCandidateStatus: async (id: string, status: string, note?: string, interviewDate?: string, interviewLocation?: string) => {
+    const response = await api.put(`/recruitment/candidates/${id}/status`, { status, note, interviewDate, interviewLocation });
     return response.data.data || response.data;
   },
 };

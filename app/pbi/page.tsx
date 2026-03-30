@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
     ListTodo,
     Plus,
@@ -32,12 +33,14 @@ import {
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import SortableTaskCard from '@/components/pbi/SortableTaskCard';
 import { taskService, Task, TaskStatus, TaskPriority } from '@/services/task.service';
-import { Project } from '@/types';
+import { Project, Role } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import CreateTaskModal from '@/components/pbi/CreateTaskModal';
 import DroppableContainer from '@/components/pbi/DroppableContainer';
 
 export default function PBIPage() {
+    const router = useRouter();
+    const { user: currentUser, isAuthenticated, isLoading, fetchUser } = useAuthStore();
     const [projects, setProjects] = useState<Project[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,6 +48,24 @@ export default function PBIPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+    const isAdmin = currentUser?.role === Role.ADMIN;
+    const isManager = currentUser?.role === Role.MANAGER;
+    const isEmployee = currentUser?.role === Role.EMPLOYEE;
+    const canAccess = isAdmin || isManager || isEmployee;
+
+    useEffect(() => {
+        if (isLoading) return;
+        if (!isAuthenticated) return;
+        if (!currentUser) {
+            fetchUser();
+            return;
+        }
+        if (!canAccess) {
+            router.replace('/dashboard');
+        }
+    }, [isLoading, isAuthenticated, currentUser, canAccess, router, fetchUser]);
 
     const sensors = useSensors(
         useSensor(MouseSensor, {
@@ -156,10 +177,10 @@ export default function PBIPage() {
 
     // Initialize columns configuration
     const columns = [
-        { id: TaskStatus.BACKLOG, label: 'Backlog', color: 'border-red-500' },
         { id: TaskStatus.READY, label: 'Ready', color: 'border-blue-500' },
         { id: TaskStatus.IN_PROGRESS, label: 'In progress', color: 'border-yellow-500' },
         { id: TaskStatus.IN_REVIEW, label: 'In review', color: 'border-purple-500' },
+        { id: TaskStatus.DONE, label: 'Done', color: 'border-green-500' },
     ];
 
     useEffect(() => {
@@ -238,6 +259,7 @@ export default function PBIPage() {
                         <button
                             onClick={() => {
                                 setSelectedProjectId(undefined);
+                                setEditingTask(null);
                                 setShowCreateModal(true);
                             }}
                             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-medium shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 transition-all"
@@ -275,9 +297,9 @@ export default function PBIPage() {
                                     <MoreHorizontal className="w-4 h-4 text-slate-400" />
                                 </div>
                                 <p className="text-xs text-slate-500">
-                                    {col.id === TaskStatus.BACKLOG ? 'Estimate: 0' :
-                                        col.id === TaskStatus.READY ? 'This is ready to be picked up' :
-                                            col.id === TaskStatus.IN_PROGRESS ? 'This is actively being worked on' : 'This item is in review'}
+                                    {col.id === TaskStatus.READY ? 'This is ready to be picked up' :
+                                        col.id === TaskStatus.IN_PROGRESS ? 'This is actively being worked on' :
+                                            col.id === TaskStatus.IN_REVIEW ? 'This item is in review' : 'This item is completed'}
                                 </p>
                             </div>
                         ))}
@@ -346,7 +368,17 @@ export default function PBIPage() {
                                                                 className="space-y-3 min-h-[100px]"
                                                             >
                                                                 {projectTasks.map((task, index) => (
-                                                                    <SortableTaskCard key={task._id} task={task} index={index} />
+                                                                    <SortableTaskCard
+                                                                        key={task._id}
+                                                                        task={task}
+                                                                        index={index}
+                                                                        onTaskUpdated={fetchData}
+                                                                        onTaskDeleted={fetchData}
+                                                                        onEditTask={(t) => {
+                                                                            setEditingTask(t);
+                                                                            setShowCreateModal(true);
+                                                                        }}
+                                                                    />
                                                                 ))}
                                                             </DroppableContainer>
                                                         </SortableContext>
@@ -355,6 +387,7 @@ export default function PBIPage() {
                                                         <button
                                                             onClick={() => {
                                                                 setSelectedProjectId(project.id);
+                                                                setEditingTask(null);
                                                                 setShowCreateModal(true);
                                                             }}
                                                             className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/50 w-full"
@@ -388,11 +421,15 @@ export default function PBIPage() {
 
             <CreateTaskModal
                 isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
+                onClose={() => {
+                    setShowCreateModal(false);
+                    setEditingTask(null);
+                }}
                 onTaskCreated={() => {
                     fetchData();
                 }}
                 defaultProjectId={selectedProjectId}
+                editTask={editingTask}
             />
         </DashboardLayout>
     );

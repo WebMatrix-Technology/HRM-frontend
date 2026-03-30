@@ -1,17 +1,27 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task, TaskPriority } from '@/services/task.service';
-import { motion } from 'framer-motion';
-import { MoreHorizontal, Clock, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { Task, TaskPriority, taskService } from '@/services/task.service';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MoreHorizontal, Edit2, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface SortableTaskCardProps {
     task: Task;
-    index: number; // Important for sorting if we implement reordering within column
+    index: number;
+    onTaskUpdated?: () => void;
+    onTaskDeleted?: () => void;
+    onEditTask?: (task: Task) => void;
 }
 
-export default function SortableTaskCard({ task, index }: SortableTaskCardProps) {
+export default function SortableTaskCard({ task, index, onTaskUpdated, onTaskDeleted, onEditTask }: SortableTaskCardProps) {
+    const router = useRouter();
+    const [showMenu, setShowMenu] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
     const {
         attributes,
         listeners,
@@ -31,6 +41,33 @@ export default function SortableTaskCard({ task, index }: SortableTaskCardProps)
         transform: CSS.Transform.toString(transform),
         transition,
         touchAction: 'none',
+    };
+
+    // Close menu on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+        if (showMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showMenu]);
+
+    const handleDelete = async () => {
+        if (!confirm(`Delete task "${task.title}"? This cannot be undone.`)) return;
+        try {
+            setDeleting(true);
+            await taskService.deleteTask(task._id);
+            onTaskDeleted?.();
+        } catch (error) {
+            console.error('Failed to delete task:', error);
+            alert('Failed to delete task');
+        } finally {
+            setDeleting(false);
+        }
     };
 
     if (isDragging) {
@@ -65,12 +102,66 @@ export default function SortableTaskCard({ task, index }: SortableTaskCardProps)
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${getPriorityColor(task.priority)} uppercase tracking-wider`}>
                     {task.priority}
                 </span>
-                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreHorizontal className="w-4 h-4" />
-                </button>
+                <div className="relative" ref={menuRef}>
+                    <button
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setShowMenu(!showMenu);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        <MoreHorizontal className="w-4 h-4" />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    <AnimatePresence>
+                        {showMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden"
+                                onPointerDown={(e) => e.stopPropagation()}
+                            >
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowMenu(false);
+                                        onEditTask?.(task);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowMenu(false);
+                                        handleDelete();
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
-            <h4 className="font-medium text-slate-800 dark:text-slate-200 mb-2 line-clamp-2">
+            <h4
+                className="font-medium text-slate-800 dark:text-slate-200 mb-2 line-clamp-2 cursor-pointer hover:text-pink-400 transition-colors"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    router.push(`/pbi/${task._id}`);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+            >
                 {task.title}
             </h4>
 

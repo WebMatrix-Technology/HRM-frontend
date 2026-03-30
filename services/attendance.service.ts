@@ -63,6 +63,26 @@ export const attendanceService = {
     const response = await api.get(`/attendance/monthly-report?${params}`);
     return response.data.data;
   },
+
+  exportAttendance: async (month: number, year: number): Promise<void> => {
+    const params = new URLSearchParams({
+      month: month.toString(),
+      year: year.toString(),
+    });
+
+    const response = await api.get(`/attendance/export?${params}`, {
+      responseType: 'blob',
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `attendance_export_${year}_${month}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 

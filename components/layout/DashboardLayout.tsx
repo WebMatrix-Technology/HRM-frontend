@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -12,6 +12,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, isAuthenticated, fetchUser } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Initialize user data on mount if we have a token but no user data
@@ -29,7 +30,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     };
 
     initializeAuth();
+    setMounted(true);
   }, []); // Only run once on mount
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-dark-bg relative">

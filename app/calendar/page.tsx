@@ -14,6 +14,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
 import { holidayService, Holiday } from '@/services/holiday.service';
+import DatePicker from '@/components/ui/DatePicker';
 
 export default function CalendarPage() {
     const { user } = useAuthStore();
@@ -142,8 +143,8 @@ export default function CalendarPage() {
                             <div
                                 key={h._id}
                                 className={`text-xs px-1.5 py-0.5 rounded truncate cursor-help ${h.type === 'HOLIDAY'
-                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                     }`}
                                 title={h.title + (h.description ? `: ${h.description}` : '')}
                             >
@@ -286,12 +287,10 @@ export default function CalendarPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
-                                    <input
-                                        type="date"
-                                        required
+                                    <DatePicker
                                         value={newHoliday.date}
-                                        onChange={e => setNewHoliday({ ...newHoliday, date: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                        onChange={val => setNewHoliday({ ...newHoliday, date: val })}
+                                        required
                                     />
                                 </div>
                                 <div>

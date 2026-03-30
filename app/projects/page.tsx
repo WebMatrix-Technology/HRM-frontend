@@ -26,13 +26,14 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateProjectModal from '@/components/CreateProjectModal';
+import ProjectCardSkeleton from '@/components/projects/ProjectCardSkeleton';
 import { useAuthStore } from '@/store/authStore';
 import { Role, Project, ProjectStatus, ProjectPriority } from '@/types';
 import { projectService } from '@/services/project.service';
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { user: currentUser, isAuthenticated } = useAuthStore();
+  const { user: currentUser, isAuthenticated, isLoading, fetchUser } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -40,6 +41,7 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
   const [priorityFilter, setPriorityFilter] = useState<ProjectPriority | ''>('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -50,40 +52,45 @@ export default function ProjectsPage() {
 
   const isAdmin = currentUser?.role === Role.ADMIN;
   const isHRManager = currentUser?.role === Role.HR_MANAGER;
-  const canAccess = isAdmin || isHRManager;
-  const canCreateProject = isAdmin || isHRManager;
+  const isManager = currentUser?.role === Role.MANAGER;
+  const canAccess = isAdmin || isManager;
+  const canCreateProject = isAdmin || isManager;
 
+  // Handle search debouncing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Main data loading effect
   useEffect(() => {
     if (!isAuthenticated) return;
+    if (isLoading) return;
+
+    // If authenticated but no user data yet, fetch it
+    if (!currentUser) {
+      fetchUser();
+      return;
+    }
 
     if (!canAccess) {
       router.replace('/dashboard');
       return;
     }
 
-    loadProjects();
+    loadProjects(debouncedSearch);
     loadStats();
-  }, [isAuthenticated, canAccess, router, page, statusFilter, priorityFilter]);
+  }, [isAuthenticated, isLoading, currentUser, canAccess, router, page, statusFilter, priorityFilter, debouncedSearch]);
 
-  useEffect(() => {
-    if (searchQuery) {
-      const delayedSearch = setTimeout(() => {
-        setPage(1);
-        loadProjects();
-      }, 500);
-      return () => clearTimeout(delayedSearch);
-    } else {
-      loadProjects();
-    }
-  }, [searchQuery]);
-
-  const loadProjects = async () => {
+  const loadProjects = async (search?: string) => {
     try {
       setLoading(true);
       const result = await projectService.getProjects(page, 12, {
         status: statusFilter || undefined,
         priority: priorityFilter || undefined,
-        search: searchQuery || undefined,
+        search: search || undefined,
       });
       console.log('Projects API response:', result);
       console.log('Projects array:', result.projects);
@@ -354,12 +361,10 @@ export default function ProjectsPage() {
 
         {/* Projects Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: [0, 0, 1, 1] as const }}
-              className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <ProjectCardSkeleton key={i} />
+            ))}
           </div>
         ) : projects.length === 0 ? (
           <motion.div

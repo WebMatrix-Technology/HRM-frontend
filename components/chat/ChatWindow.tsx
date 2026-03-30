@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Smile, MoreVertical, Check, CheckCheck, Clock, MessageCircle } from 'lucide-react';
+import { Send, Smile, MoreVertical, Check, CheckCheck, Clock, MessageCircle, Paperclip } from 'lucide-react';
 import { ChatMessage } from '@/services/chat.service';
 import { chatService } from '@/services/chat.service';
 import { socketService } from '@/services/socket.service';
@@ -19,9 +20,12 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const employee = useAuthStore((state) => state.employee);
 
   useEffect(() => {
@@ -123,7 +127,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       setMessages(sortedMessages || []);
-      
+
       // Mark unread messages as read
       const unreadMessages = sortedMessages.filter(
         (msg) => msg.senderId === receiverId && !msg.isRead
@@ -152,7 +156,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
 
     const messageText = newMessage.trim();
     const tempId = `temp-${Date.now()}`;
-    
+
     // Optimistic update - show message immediately
     const optimisticMessage: ChatMessage = {
       id: tempId,
@@ -169,11 +173,11 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         avatar: employee.avatar,
       },
     };
-    
+
     setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
     socketService.emitTyping(receiverId, false);
-    
+
     // Check if socket is disabled (e.g., on Vercel)
     if (socketService.isSocketDisabled()) {
       // Socket is disabled, remove optimistic message and show user-friendly message
@@ -183,7 +187,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       console.info('Message sending is disabled: Socket.IO is not available on this platform.');
       return;
     }
-    
+
     // Check if socket is connected, if not, try to reconnect
     if (!socketService.isConnected()) {
       console.warn('Socket not connected. Attempting to reconnect...');
@@ -210,7 +214,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       alert('Unable to connect to chat server. Please refresh the page and try again.');
       return;
     }
-    
+
     try {
       console.log('Sending message to:', receiverId, 'Message:', messageText);
       socketService.sendMessage(receiverId, messageText);
@@ -237,6 +241,30 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       }, 1000);
     } else {
       socketService.emitTyping(receiverId, false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !employee) return;
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    const type = file.type.startsWith('image/') ? 'IMAGE' : 'FILE';
+    
+    try {
+      setUploading(true);
+      const data = await chatService.uploadAttachment(file);
+      
+      if (socketService.isConnected()) {
+        socketService.sendMessage(receiverId, file.name, type, data.fileUrl);
+      } else {
+        alert('Chat not connected. Please refresh.');
+      }
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      alert('Failed to upload attachment.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -274,6 +302,31 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     return currentDate !== previousDate;
   };
 
+  const renderMessageContent = (message: ChatMessage) => {
+    if (message.type === 'IMAGE' && message.fileUrl) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      return (
+        <a href={`${baseUrl}${message.fileUrl}`} target="_blank" rel="noopener noreferrer">
+          <img src={`${baseUrl}${message.fileUrl}`} alt="attachment" className="max-w-full max-h-64 rounded-lg mb-1 object-cover hover:opacity-90 transition-opacity" />
+        </a>
+      );
+    }
+    if (message.type === 'FILE' && message.fileUrl) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      return (
+        <a href={`${baseUrl}${message.fileUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-dark-bg/50 rounded-lg mb-1 hover:bg-dark-bg transition-colors border border-dark-border/50">
+          <Paperclip className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm underline decoration-cyan-400/30 underline-offset-2 break-all">{message.message}</span>
+        </a>
+      );
+    }
+    return (
+      <p className="text-sm whitespace-pre-wrap break-words">
+        {message.message}
+      </p>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -302,13 +355,55 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
             </div>
           </div>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-2 rounded-lg hover:bg-dark-surface transition-colors"
-        >
-          <MoreVertical className="w-5 h-5 text-cyan-400" />
-        </motion.button>
+        <div className="relative">
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-2 rounded-lg hover:bg-dark-surface transition-colors cursor-pointer"
+          >
+            <MoreVertical className="w-5 h-5 text-cyan-400" />
+          </motion.div>
+          {showMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowMenu(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute right-0 top-full mt-2 w-48 bg-dark-surface border border-dark-border rounded-xl shadow-xl z-20 overflow-hidden"
+              >
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      // TODO: Implement viewing profile
+                      alert('View Profile clicked');
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-cyan-50 hover:bg-dark-bg/50 transition-colors"
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      if (confirm('Are you sure you want to clear this chat? This cannot be undone.')) {
+                        setMessages([]);
+                        // TODO: Implement actual clear chat API
+                      }
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-dark-bg/50 transition-colors"
+                  >
+                    Clear Chat
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -336,7 +431,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
             const isOwnMessage = message.senderId === employee?.id;
             const previousMessage = index > 0 ? messages[index - 1] : undefined;
             const showDateSeparator = shouldShowDateSeparator(message, previousMessage);
-            const isConsecutive = previousMessage && 
+            const isConsecutive = previousMessage &&
               previousMessage.senderId === message.senderId &&
               new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime() < 300000; // 5 minutes
 
@@ -376,9 +471,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
                           {message.sender.firstName} {message.sender.lastName}
                         </p>
                       )}
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {message.message}
-                      </p>
+                      {renderMessageContent(message)}
                       <div className={`flex items-center gap-1 mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-xs opacity-70">
                           {formatTime(message.createdAt)}
@@ -430,8 +523,44 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-dark-border glass">
+      <div className="relative">
+        <AnimatePresence>
+          {showEmojiPicker && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-full right-4 mb-2 z-50 shadow-2xl"
+            >
+              <EmojiPicker
+                onEmojiClick={(emojiData) => {
+                  setNewMessage((prev) => prev + emojiData.emoji);
+                }}
+                theme={Theme.DARK}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-dark-border glass">
         <div className="flex items-end gap-2">
+          
+          <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className={`p-2 rounded-lg transition-colors flex-shrink-0 ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-surface'}`}
+            title="Attach file"
+          >
+            {uploading ? (
+               <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+               <Paperclip className="w-5 h-5 text-cyan-400" />
+            )}
+          </motion.button>
+
           <div className="flex-1 relative">
             <textarea
               value={newMessage}
@@ -477,6 +606,7 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
           </motion.button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

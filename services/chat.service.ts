@@ -90,6 +90,11 @@ export const chatService = {
     return response.data.data;
   },
 
+  updateGroup: async (groupId: string, data: { name?: string; description?: string }) => {
+    const response = await api.put(`/chat/groups/${groupId}`, data);
+    return response.data.data;
+  },
+
   addGroupMembers: async (groupId: string, memberIds: string[]) => {
     const response = await api.post(`/chat/groups/${groupId}/members`, { memberIds });
     return response.data;
@@ -103,6 +108,15 @@ export const chatService = {
   leaveGroup: async (groupId: string) => {
     const response = await api.post(`/chat/groups/${groupId}/leave`);
     return response.data;
+  },
+
+  uploadAttachment: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/chat/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
   },
 };
 

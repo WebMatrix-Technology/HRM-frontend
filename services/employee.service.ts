@@ -14,8 +14,22 @@ export interface Employee {
   country?: string;
   department?: string;
   position?: string;
+  personalEmail?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  qualifications?: string;
+  skills?: string;
+  joiningDate?: string;
+  nameTitle?: string;
   employmentType?: string;
   salary?: number;
+  basicSalary?: number;
+  hra?: number;
+  specialAllowance?: number;
+  travelAllowance?: number;
+  pf?: number;
+  tds?: number;
   isActive: boolean;
   avatar?: string;
   user?: {
@@ -41,8 +55,22 @@ export interface CreateEmployeeData {
   country?: string;
   department?: string;
   position?: string;
+  personalEmail?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  qualifications?: string;
+  skills?: string;
+  joiningDate?: string;
+  nameTitle?: string;
   employmentType?: string;
   salary?: number;
+  basicSalary?: number;
+  hra?: number;
+  specialAllowance?: number;
+  travelAllowance?: number;
+  pf?: number;
+  tds?: number;
   role?: string;
 }
 
@@ -58,8 +86,22 @@ export interface UpdateEmployeeData {
   country?: string;
   department?: string;
   position?: string;
+  personalEmail?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  qualifications?: string;
+  skills?: string;
+  joiningDate?: string;
+  nameTitle?: string;
   employmentType?: string;
   salary?: number;
+  basicSalary?: number;
+  hra?: number;
+  specialAllowance?: number;
+  travelAllowance?: number;
+  pf?: number;
+  tds?: number;
   isActive?: boolean;
 }
 

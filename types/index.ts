@@ -2,6 +2,7 @@ export enum Role {
   ADMIN = 'ADMIN',
   EMPLOYEE = 'EMPLOYEE',
   HR_MANAGER = 'HR_MANAGER',
+  MANAGER = 'MANAGER',
   CLERK = 'CLERK',
 }
 
@@ -19,6 +20,14 @@ export interface Employee {
   firstName: string;
   lastName: string;
   phone?: string;
+  personalEmail?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  qualifications?: string;
+  skills?: string;
+  joiningDate?: string;
+  nameTitle?: string;
   department?: string;
   position?: string;
   avatar?: string;
@@ -128,5 +137,6 @@ export interface UpdateProjectData {
   managerId?: string;
   progress?: number;
   tags?: string[];
+  memberIds?: string[];
 }
 

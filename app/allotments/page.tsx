@@ -40,6 +40,9 @@ export default function AllotmentsPage() {
   // History state
   const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyMonth, setHistoryMonth] = useState<number | ''>('');
+  const [historyYear, setHistoryYear] = useState<number | ''>('');
 
   // Payroll processing state
   const [selectedEmployeeForPayroll, setSelectedEmployeeForPayroll] = useState<Employee | null>(null);
@@ -633,68 +636,139 @@ export default function AllotmentsPage() {
 
         {/* History Tab Content */}
         {activeTab === 'history' && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Processed Payrolls</h2>
+          <div className="space-y-6">
+            {/* Filters for History */}
+            <div className="glass rounded-xl p-4 shadow-lg border border-dark-border">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-500/50" />
+                  <input
+                    type="text"
+                    placeholder="Search by employee name or ID..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-dark-bg/50 border border-dark-border rounded-lg text-white placeholder-slate-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+                  />
+                </div>
+                <select
+                  value={historyMonth}
+                  onChange={(e) => setHistoryMonth(e.target.value ? parseInt(e.target.value) : '')}
+                  className="px-4 py-2 bg-dark-bg/50 border border-dark-border rounded-lg text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+                >
+                  <option value="">All Months</option>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {new Date(2000, i).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={historyYear}
+                  onChange={(e) => setHistoryYear(e.target.value ? parseInt(e.target.value) : '')}
+                  className="px-4 py-2 bg-dark-bg/50 border border-dark-border rounded-lg text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+                >
+                  <option value="">All Years</option>
+                  {[...new Set(payrollHistory.map(p => p.year))].sort((a, b) => b - a).map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {loadingHistory ? (
-              <div className="p-12 flex justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            <div className="glass rounded-xl shadow-lg border border-dark-border overflow-hidden">
+              <div className="p-6 border-b border-dark-border flex justify-between items-center bg-dark-surface/50">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-primary-400" />
+                  Processed Payrolls
+                </h2>
               </div>
-            ) : payrollHistory.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">
-                No payroll history found.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Period</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Net Salary</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 text-right uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                    {payrollHistory.map(payroll => (
-                      <tr key={payroll._id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-slate-900 dark:text-white">
-                            {payroll.employeeId?.firstName} {payroll.employeeId?.lastName}
-                          </div>
-                          <div className="text-sm text-slate-500">{payroll.employeeId?.employeeId}</div>
-                        </td>
-                        <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                          {new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
-                          ₹{payroll.netSalary.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payroll.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                            {payroll.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => payslipService.generatePayslip(payroll)}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors"
-                            title="Download Payslip"
-                          >
-                            <FileText className="w-4 h-4" />
-                            Payslip
-                          </button>
-                        </td>
+
+              {loadingHistory ? (
+                <div className="p-12 flex justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-dark-surface/30 border-b border-dark-border">
+                        <th className="px-6 py-4 text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Employee</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Period</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Net Salary</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-cyan-400/70 text-right uppercase tracking-wider">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody className="divide-y divide-dark-border">
+                      {(() => {
+                        const filteredHistory = payrollHistory.filter(payroll => {
+                          const query = historySearch.toLowerCase();
+                          const matchesSearch =
+                            payroll.employeeId?.firstName?.toLowerCase().includes(query) ||
+                            payroll.employeeId?.lastName?.toLowerCase().includes(query) ||
+                            payroll.employeeId?.employeeId?.toLowerCase().includes(query);
+                          const matchesMonth = historyMonth === '' || payroll.month === historyMonth;
+                          const matchesYear = historyYear === '' || payroll.year === historyYear;
+                          return matchesSearch && matchesMonth && matchesYear;
+                        });
+
+                        if (filteredHistory.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={5} className="p-12 text-center text-slate-500">
+                                No payroll history found matching the filters.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filteredHistory.map(payroll => (
+                          <tr key={payroll._id} className="hover:bg-dark-surface/50 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="font-medium text-white group-hover:text-primary-400 transition-colors">
+                                {payroll.employeeId?.firstName} {payroll.employeeId?.lastName}
+                              </div>
+                              <div className="text-sm text-cyan-500/50">{payroll.employeeId?.employeeId}</div>
+                            </td>
+                            <td className="px-6 py-4 text-slate-300">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-slate-500" />
+                                {new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">
+                                ₹{payroll.netSalary.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full border ${payroll.status === 'PAID'
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                }`}>
+                                {payroll.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => payslipService.generatePayslip(payroll)}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 border border-primary-500/20 rounded-xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
+                                title="Download Payslip"
+                              >
+                                <Download className="w-4 h-4" />
+                                Payslip
+                              </button>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </motion.div>

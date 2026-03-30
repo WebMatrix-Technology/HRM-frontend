@@ -6,6 +6,7 @@ import { X, Calendar, Users, Target, DollarSign, AlertCircle, CheckCircle, Loade
 import { projectService } from '@/services/project.service';
 import { employeeService } from '@/services/employee.service';
 import { ProjectStatus, ProjectPriority, CreateProjectData } from '@/types';
+import DatePicker from '@/components/ui/DatePicker';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -49,9 +50,12 @@ export default function CreateProjectModal({
         projectService.getAvailableManagers(),
         employeeService.getEmployees(1, 1000, { isActive: true })
       ]);
-      
-      setAvailableManagers(managersResponse);
-      setAvailableEmployees(employeesResponse.employees);
+
+      setAvailableManagers(managersResponse || []);
+      console.log('Managers loaded:', managersResponse);
+      const employees = employeesResponse?.employees || [];
+      console.log('Employees loaded:', employees);
+      setAvailableEmployees(employees);
     } catch (error) {
       console.error('Failed to load data:', error);
       setError('Failed to load managers and employees');
@@ -83,7 +87,7 @@ export default function CreateProjectModal({
 
     try {
       setLoading(true);
-      
+
       const projectData: CreateProjectData = {
         ...formData,
         memberIds: selectedMembers,
@@ -91,9 +95,9 @@ export default function CreateProjectModal({
       };
 
       await projectService.createProject(projectData);
-      
+
       setSuccess('Project created successfully!');
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -106,18 +110,18 @@ export default function CreateProjectModal({
       setSelectedMembers([]);
       setTags([]);
       setTagInput('');
-      
+
       // Notify parent and close modal
       setTimeout(() => {
         onProjectCreated();
         onClose();
         setSuccess('');
       }, 1500);
-      
+
     } catch (err: any) {
       setError(
-        err.response?.data?.error || 
-        err.message || 
+        err.response?.data?.error ||
+        err.message ||
         'Failed to create project. Please try again.'
       );
     } finally {
@@ -317,30 +321,26 @@ export default function CreateProjectModal({
                     {/* Dates */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                           Start Date *
                         </label>
-                        <input
-                          id="startDate"
-                          type="date"
+                        <DatePicker
                           value={formData.startDate}
-                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                          className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          onChange={(val) => setFormData({ ...formData, startDate: val })}
+                          placeholder="Select start date"
                           disabled={loading}
                           required
                         />
                       </div>
                       <div>
-                        <label htmlFor="deadline" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                           Deadline
                         </label>
-                        <input
-                          id="deadline"
-                          type="date"
+                        <DatePicker
                           value={formData.deadline || ''}
-                          onChange={(e) => setFormData({ ...formData, deadline: e.target.value || undefined })}
+                          onChange={(val) => setFormData({ ...formData, deadline: val || undefined })}
+                          placeholder="Select deadline"
                           min={formData.startDate}
-                          className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                           disabled={loading}
                         />
                       </div>

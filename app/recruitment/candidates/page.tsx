@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { recruitmentService, Candidate, Job } from '@/services/recruitment.service';
 import { useAuthStore } from '@/store/authStore';
 import { Role } from '@/types';
+import DatePicker from '@/components/ui/DatePicker';
 import {
     Users,
     Search,
@@ -19,6 +20,8 @@ import {
     Clock,
     CheckCircle,
     XCircle,
+    CalendarPlus,
+    MapPin,
 } from 'lucide-react';
 
 export default function CandidatesPage() {
@@ -32,12 +35,14 @@ export default function CandidatesPage() {
     const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
     const [newStatus, setNewStatus] = useState('');
     const [note, setNote] = useState('');
+    const [interviewDate, setInterviewDate] = useState('');
+    const [interviewLocation, setInterviewLocation] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
- 
+
     // Cover Letter Modal
     const [viewingCoverLetter, setViewingCoverLetter] = useState<string | null>(null);
 
-    const canManageRecruitment = user?.role === Role.HR_MANAGER || user?.role === Role.ADMIN;
+    const canManageRecruitment = user?.role === Role.HR_MANAGER || user?.role === Role.ADMIN || user?.role === Role.CLERK;
 
     const getResumeUrl = (url?: string) => {
         if (!url) return '#';
@@ -73,9 +78,17 @@ export default function CandidatesPage() {
 
         try {
             setIsUpdating(true);
-            await recruitmentService.updateCandidateStatus(selectedCandidate._id, newStatus, note);
+            await recruitmentService.updateCandidateStatus(
+                selectedCandidate._id,
+                newStatus,
+                note,
+                newStatus === 'INTERVIEW' ? interviewDate : undefined,
+                newStatus === 'INTERVIEW' ? interviewLocation : undefined
+            );
             setSelectedCandidate(null);
             setNote('');
+            setInterviewDate('');
+            setInterviewLocation('');
             loadCandidates();
         } catch (error) {
             console.error('Failed to update status:', error);
@@ -206,6 +219,18 @@ export default function CandidatesPage() {
                                             <button
                                                 onClick={() => {
                                                     setSelectedCandidate(candidate);
+                                                    setNewStatus('INTERVIEW');
+                                                    setInterviewDate(candidate.interviewDate ? new Date(candidate.interviewDate).toISOString().slice(0, 16) : '');
+                                                    setInterviewLocation(candidate.interviewLocation || '');
+                                                }}
+                                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors shadow-sm flex items-center gap-2"
+                                            >
+                                                <CalendarPlus className="w-4 h-4" />
+                                                Schedule Interview
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedCandidate(candidate);
                                                     setNewStatus(candidate.status);
                                                 }}
                                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm"
@@ -213,6 +238,18 @@ export default function CandidatesPage() {
                                                 Update Status
                                             </button>
                                         </div>
+                                        {candidate.interviewDate && (
+                                            <div className="text-xs text-purple-400 flex items-center gap-1 text-right">
+                                                <CalendarPlus className="w-3 h-3" />
+                                                Interview: {new Date(candidate.interviewDate).toLocaleString()}
+                                                {candidate.interviewLocation && (
+                                                    <span className="flex items-center gap-1 ml-2">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {candidate.interviewLocation}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                         {candidate.notes && candidate.notes.length > 0 && (
                                             <div className="text-xs text-slate-500 text-right">
                                                 Latest Note: {candidate.notes[candidate.notes.length - 1].text}
@@ -255,6 +292,34 @@ export default function CandidatesPage() {
                                     </select>
                                 </div>
 
+                                {newStatus === 'INTERVIEW' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Interview Date & Time
+                                            </label>
+                                            <DatePicker
+                                                value={interviewDate}
+                                                onChange={(val) => setInterviewDate(val)}
+                                                includeTime={true}
+                                                placeholder="Select interview date & time"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Interview Location / Link
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={interviewLocation}
+                                                onChange={(e) => setInterviewLocation(e.target.value)}
+                                                placeholder="Office Room 3, Zoom link, etc."
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                         Add Note (Optional)
@@ -274,6 +339,8 @@ export default function CandidatesPage() {
                                         onClick={() => {
                                             setSelectedCandidate(null);
                                             setNote('');
+                                            setInterviewDate('');
+                                            setInterviewLocation('');
                                         }}
                                         className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
                                     >

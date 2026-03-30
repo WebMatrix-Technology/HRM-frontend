@@ -6,6 +6,7 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 10, 10, 26;
   --background-end-rgb: 15, 15, 35;
+  color-scheme: dark; /* Forces native popups to dark mode */
 }
 
 @media (prefers-color-scheme: light) {
@@ -13,6 +14,7 @@
     --foreground-rgb: 15, 23, 42;
     --background-start-rgb: 248, 250, 252;
     --background-end-rgb: 255, 255, 255;
+    color-scheme: light;
   }
 }
 
@@ -69,6 +71,18 @@ body {
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-dark-border rounded-full hover:bg-primary-500/50 transition-colors;
   }
+}
+
+/* Base styling for date inputs to ensure calendar icon is visible in dark mode */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 /* Global Scrollbar */

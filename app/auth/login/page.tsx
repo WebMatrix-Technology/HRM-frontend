@@ -192,7 +192,7 @@ export default function LoginPage() {
                     id="email"
                     name="email"
                     type="email"
-                    autoComplete="email"
+                    autoComplete="username"
                     required
                     className="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="you@example.com"

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { recruitmentService, Job } from '@/services/recruitment.service';
 import {
     Users,
@@ -23,7 +22,7 @@ import PublicHeader from '@/components/layout/PublicHeader';
 export default function CareersPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(''); 
 
     // Application Modal State
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
