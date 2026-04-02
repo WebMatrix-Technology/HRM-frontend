@@ -70,7 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       lastName: 'User',
       position: 'System Evaluator',
       department: 'Evaluation',
-      avatar: undefined // could add a robot avatar URL here
+      avatar: undefined, // could add a robot avatar URL here
+      isActive: true,
     };
 
     if (typeof window !== 'undefined') {

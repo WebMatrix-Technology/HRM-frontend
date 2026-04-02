@@ -1,17 +1,8 @@
 import api from './api';
-import { User, Role } from '@/types';
+import { User, Role, Employee } from '@/types';
 
 export interface UserWithEmployee extends User {
-  employee?: {
-    id: string;
-    employeeId: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    department?: string;
-    position?: string;
-    avatar?: string;
-  } | null;
+  employee?: Employee | null;
   createdAt?: string;
   updatedAt?: string;
 }

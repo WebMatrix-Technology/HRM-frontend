@@ -173,6 +173,9 @@ export default function AllotmentsPage() {
       specialAllowance: employee.specialAllowance || 0,
       travelAllowance: employee.travelAllowance || 0,
       deductions: 0,
+      absentDays: 0,
+      leaveDeduction: 0,
+      idleDeduction: 0,
       pf: 0,
       tds: 0,
     });
