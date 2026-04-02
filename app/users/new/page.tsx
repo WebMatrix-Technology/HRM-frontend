@@ -81,6 +81,7 @@ export default function AddEmployeePage() {
     travelAllowance: undefined as number | undefined,
     pf: undefined as number | undefined,
     tds: undefined as number | undefined,
+    monthlyLeaveAllotment: undefined as number | undefined,
     role: 'EMPLOYEE',
     personalEmail: '',
     bankName: '',
@@ -124,7 +125,7 @@ export default function AddEmployeePage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: ['salary', 'basicSalary', 'hra', 'specialAllowance', 'travelAllowance', 'pf', 'tds'].includes(name) ? (value ? parseFloat(value) : undefined) : value,
+      [name]: ['salary', 'basicSalary', 'hra', 'specialAllowance', 'travelAllowance', 'pf', 'tds', 'monthlyLeaveAllotment'].includes(name) ? (value ? parseFloat(value) : undefined) : value,
     }));
   };
 
@@ -142,6 +143,22 @@ export default function AddEmployeePage() {
       }
     }
   };
+
+  // Auto-calculate CTC based on other salary components
+  useEffect(() => {
+    const basic = formData.basicSalary || 0;
+    const hra = formData.hra || 0;
+    const special = formData.specialAllowance || 0;
+    const travel = formData.travelAllowance || 0;
+    const pf = formData.pf || 0;
+    
+    const totalCTC = (basic + hra + special + travel + pf) * 12;
+    const newSalary = totalCTC > 0 ? totalCTC : undefined;
+    
+    if (newSalary !== formData.salary) {
+      setFormData(prev => ({ ...prev, salary: newSalary }));
+    }
+  }, [formData.basicSalary, formData.hra, formData.specialAllowance, formData.travelAllowance, formData.pf, formData.salary]);
 
   const handleRemoveSkill = (skillToRemove: string) => {
     const skillsArray = formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -184,6 +201,7 @@ export default function AddEmployeePage() {
         travelAllowance: formData.travelAllowance,
         pf: formData.pf,
         tds: formData.tds,
+        monthlyLeaveAllotment: formData.monthlyLeaveAllotment,
         role: formData.role as any,
         personalEmail: formData.personalEmail || undefined,
         bankName: formData.bankName || undefined,
@@ -741,17 +759,17 @@ export default function AddEmployeePage() {
                       type="number"
                       min="0"
                       step="0.01"
-                      className="block w-full pl-8 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="e.g. 500000"
+                      readOnly
+                      className="block w-full pl-8 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 focus:outline-none cursor-not-allowed transition-all opacity-80"
+                      placeholder="Auto-calculated CTC"
                       value={formData.salary || ''}
-                      onChange={handleChange}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="basicSalary" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Basic Salary
+                    Basic Salary (Monthly)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -764,7 +782,7 @@ export default function AddEmployeePage() {
                       min="0"
                       step="0.01"
                       className="block w-full pl-8 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="e.g. 250000"
+                      placeholder="e.g. 20000"
                       value={formData.basicSalary || ''}
                       onChange={handleChange}
                     />
@@ -773,7 +791,7 @@ export default function AddEmployeePage() {
 
                 <div>
                   <label htmlFor="hra" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    HRA
+                    HRA (Monthly)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -786,7 +804,7 @@ export default function AddEmployeePage() {
                       min="0"
                       step="0.01"
                       className="block w-full pl-8 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="e.g. 125000"
+                      placeholder="e.g. 10000"
                       value={formData.hra || ''}
                       onChange={handleChange}
                     />
@@ -795,7 +813,7 @@ export default function AddEmployeePage() {
 
                 <div>
                   <label htmlFor="specialAllowance" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Special Allowance
+                    Special Allowance (Monthly)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -808,7 +826,7 @@ export default function AddEmployeePage() {
                       min="0"
                       step="0.01"
                       className="block w-full pl-8 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="e.g. 75000"
+                      placeholder="e.g. 6000"
                       value={formData.specialAllowance || ''}
                       onChange={handleChange}
                     />
@@ -817,7 +835,7 @@ export default function AddEmployeePage() {
 
                 <div>
                   <label htmlFor="travelAllowance" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Travel Allowance
+                    Travel Allowance (Monthly)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -830,7 +848,7 @@ export default function AddEmployeePage() {
                       min="0"
                       step="0.01"
                       className="block w-full pl-8 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="e.g. 50000"
+                      placeholder="e.g. 4000"
                       value={formData.travelAllowance || ''}
                       onChange={handleChange}
                     />
@@ -839,7 +857,7 @@ export default function AddEmployeePage() {
 
                 <div>
                   <label htmlFor="pf" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    PF (Provident Fund)
+                    PF (Monthly)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -861,7 +879,7 @@ export default function AddEmployeePage() {
 
                 <div>
                   <label htmlFor="tds" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    TDS
+                    TDS (Monthly)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -878,6 +896,33 @@ export default function AddEmployeePage() {
                       value={formData.tds || ''}
                       onChange={handleChange}
                     />
+                  </div>
+                </div>
+                
+                <div className="md:col-span-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    Leave Allotment
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="monthlyLeaveAllotment" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Monthly Leaves Allowed
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="monthlyLeaveAllotment"
+                          name="monthlyLeaveAllotment"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          placeholder="e.g. 1.5"
+                          value={formData.monthlyLeaveAllotment || ''}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

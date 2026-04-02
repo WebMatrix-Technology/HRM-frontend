@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -20,9 +20,11 @@ import {
     AlertCircle,
     Hash,
     Layers,
+    MessageSquare,
+    Send,
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { taskService, Task, TaskStatus, TaskPriority } from '@/services/task.service';
+import { taskService, Task, TaskStatus, TaskPriority, TaskComment } from '@/services/task.service';
 import CreateTaskModal from '@/components/pbi/CreateTaskModal';
 import Link from 'next/link';
 
@@ -36,6 +38,10 @@ export default function PBIDetailPage() {
     const [error, setError] = useState<string | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+    const [commentError, setCommentError] = useState('');
+    const commentsEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (taskId) loadTask();
@@ -64,6 +70,27 @@ export default function PBIDetailPage() {
         } catch (err) {
             console.error('Failed to delete task:', err);
             alert('Failed to delete task');
+        }
+    };
+
+    const handleAddComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!commentText.trim() || !task) return;
+        try {
+            setIsSubmittingComment(true);
+            setCommentError('');
+            // Use task._id (the real MongoDB ID) instead of the URL param
+            const updatedTask = await taskService.addComment(task._id, commentText);
+            setTask(updatedTask);
+            setCommentText('');
+            // Scroll to the newly added comment
+            setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        } catch (err: any) {
+            console.error('Failed to add comment:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to add comment';
+            setCommentError(msg);
+        } finally {
+            setIsSubmittingComment(false);
         }
     };
 
@@ -329,6 +356,89 @@ export default function PBIDetailPage() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* Comments Section */}
+                        <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-cyan-400" />
+                                    Comments
+                                    {task.comments && task.comments.length > 0 && (
+                                        <span className="px-2 py-0.5 text-xs rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                                            {task.comments.length}
+                                        </span>
+                                    )}
+                                </h3>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                {/* Existing comments */}
+                                {(!task.comments || task.comments.length === 0) && (
+                                    <p className="text-sm text-slate-500 italic text-center py-4">No comments yet. Be the first to comment!</p>
+                                )}
+                                {task.comments && task.comments.map((comment) => {
+                                    const author = typeof comment.authorId === 'object' ? comment.authorId : null;
+                                    return (
+                                        <div key={comment._id} className="flex gap-3 group">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0 mt-0.5">
+                                                {author ? `${author.firstName?.[0] || ''}${author.lastName?.[0] || ''}` : '?'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3 group-hover:border-slate-600/50 transition-colors">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <span className="text-sm font-semibold text-white">
+                                                            {author ? `${author.firstName} ${author.lastName}` : 'Unknown'}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">
+                                                            {formatTimeSince(comment.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{comment.text}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div ref={commentsEndRef} />
+
+                                {/* Comment error */}
+                                {commentError && (
+                                    <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+                                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                        {commentError}
+                                    </div>
+                                )}
+
+                                {/* Add comment form */}
+                                <form onSubmit={handleAddComment} className="flex gap-3 pt-2 border-t border-slate-800">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0 mt-1">
+                                        You
+                                    </div>
+                                    <div className="flex-1">
+                                        <textarea
+                                            value={commentText}
+                                            onChange={(e) => setCommentText(e.target.value)}
+                                            placeholder="Leave a comment..."
+                                            rows={2}
+                                            className="w-full px-3 py-2 text-sm bg-slate-800/60 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 focus:outline-none transition-colors resize-none"
+                                        />
+                                        <div className="flex justify-end mt-2">
+                                            <button
+                                                type="submit"
+                                                disabled={!commentText.trim() || isSubmittingComment}
+                                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {isSubmittingComment ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                    <Send className="w-3.5 h-3.5" />
+                                                )}
+                                                Comment
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </motion.div>

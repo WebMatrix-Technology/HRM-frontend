@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { attendanceService, Attendance } from '@/services/attendance.service';
+import { employeeService, Employee as EmployeeType } from '@/services/employee.service';
 import {
   Clock,
   LogIn,
@@ -18,6 +19,8 @@ import {
   Coffee,
   Activity,
   Download,
+  Users,
+  User,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useIdleTimer } from '@/components/providers/IdleTimerProvider';
@@ -35,12 +38,15 @@ export default function AttendancePage() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(currentDate.getMonth() + 1).padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState(String(currentDate.getFullYear()));
+  const [employees, setEmployees] = useState<EmployeeType[]>([]);
+  const [exportEmployeeId, setExportEmployeeId] = useState<string>('all');
 
   const { idleSeconds, resetIdleTime } = useIdleTimer();
 
   useEffect(() => {
     loadAttendance();
     checkTodayAttendance();
+    loadEmployees();
   }, []);
 
   const loadAttendance = async () => {
@@ -72,6 +78,18 @@ export default function AttendancePage() {
       }
     } catch (error) {
       console.error('Failed to check today attendance:', error);
+    }
+  };
+
+  const isAdmin = employee && (useAuthStore.getState().user?.role === 'ADMIN' || useAuthStore.getState().user?.role === 'HR_MANAGER');
+
+  const loadEmployees = async () => {
+    if (!isAdmin) return;
+    try {
+      const data = await employeeService.getEmployees(1, 200);
+      setEmployees(data.employees || []);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
     }
   };
 
@@ -123,7 +141,8 @@ export default function AttendancePage() {
         return;
       }
       setDownloading(true);
-      await attendanceService.exportAttendance(parseInt(selectedMonth, 10), parseInt(selectedYear, 10));
+      const empId = exportEmployeeId === 'all' ? undefined : exportEmployeeId;
+      await attendanceService.exportAttendance(parseInt(selectedMonth, 10), parseInt(selectedYear, 10), empId);
     } catch (error: any) {
       alert('Failed to download attendance sheet');
     } finally {
@@ -236,6 +255,25 @@ export default function AttendancePage() {
                 ))}
               </select>
             </div>
+            {isAdmin && (
+              <div className="flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                <select
+                  value={exportEmployeeId}
+                  onChange={(e) => setExportEmployeeId(e.target.value)}
+                  className="px-4 py-3 bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none appearance-none min-w-[180px]"
+                  title="Select Employee"
+                >
+                  <option value="all" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                    👥 All Employees
+                  </option>
+                  {employees.map((emp) => (
+                    <option key={emp.id || (emp as any)._id} value={emp.id || (emp as any)._id} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                      {emp.firstName} {emp.lastName} ({emp.employeeId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button
               onClick={handleDownload}
               disabled={downloading || !selectedMonth || !selectedYear}
@@ -355,7 +393,6 @@ export default function AttendancePage() {
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
           </motion.div>
-
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

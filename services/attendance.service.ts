@@ -64,20 +64,22 @@ export const attendanceService = {
     return response.data.data;
   },
 
-  exportAttendance: async (month: number, year: number): Promise<void> => {
+  exportAttendance: async (month: number, year: number, employeeId?: string): Promise<void> => {
     const params = new URLSearchParams({
       month: month.toString(),
       year: year.toString(),
     });
+    if (employeeId) params.append('employeeId', employeeId);
 
     const response = await api.get(`/attendance/export?${params}`, {
       responseType: 'blob',
     });
 
+    const suffix = employeeId ? `_${employeeId}` : '_all';
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `attendance_export_${year}_${month}.csv`);
+    link.setAttribute('download', `attendance_export_${year}_${month}${suffix}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();

@@ -5,10 +5,14 @@ export interface ProcessPayrollData {
   month: number;
   year: number;
   basicSalary: number;
-  allowances?: number;
+  hra?: number;
+  specialAllowance?: number;
+  travelAllowance?: number;
   deductions?: number;
+  absentDays?: number;
+  leaveDeduction?: number;
+  idleDeduction?: number;
   pf?: number;
-  esic?: number;
   tds?: number;
 }
 
@@ -18,16 +22,23 @@ export interface Payroll {
   month: number;
   year: number;
   basicSalary: number;
-  allowances: number;
+  hra: number;
+  specialAllowance: number;
+  travelAllowance: number;
   deductions: number;
+  absentDays?: number;
+  leaveDeduction?: number;
+  idleDeduction?: number;
+  absentDeduction?: number; // Added to match backend return if nested or flat
   pf: number;
   metrics?: {
     absentDays: number;
+    lopDays?: number;
     idleHours: number;
     absentDeduction: number;
     idleDeduction: number;
+    leaveDeduction: number;
   };
-  esic?: number;
   tds?: number;
   netSalary: number;
   status: 'PENDING' | 'PROCESSED' | 'PAID';
@@ -39,16 +50,23 @@ export interface PayrollFormData {
   month: number;
   year: number;
   basicSalary: number;
-  allowances: number;
+  hra: number;
+  specialAllowance: number;
+  travelAllowance: number;
   deductions: number;
+  absentDays?: number;
+  leaveDeduction?: number;
+  idleDeduction?: number;
+  absentDeduction?: number;
   pf: number;
-  esic: number;
   tds: number;
   metrics?: {
     absentDays: number;
+    lopDays?: number;
     idleHours: number;
     absentDeduction: number;
     idleDeduction: number;
+    leaveDeduction: number;
   };
 }
 

@@ -51,17 +51,23 @@ export default function AllotmentsPage() {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
     basicSalary: 0,
-    allowances: 0,
+    hra: 0,
+    specialAllowance: 0,
+    travelAllowance: 0,
     deductions: 0,
+    absentDays: 0,
+    leaveDeduction: 0,
+    idleDeduction: 0,
     pf: 0,
-    esic: 0,
     tds: 0,
   });
   const [payrollMetrics, setPayrollMetrics] = useState<{
-    absentDays: number;
-    idleHours: number;
-    absentDeduction: number;
-    idleDeduction: number;
+    absentDays?: number;
+    lopDays?: number;
+    idleHours?: number;
+    absentDeduction?: number;
+    idleDeduction?: number;
+    leaveDeduction?: number;
   } | null>(null);
   const [isProcessingPayroll, setIsProcessingPayroll] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -162,11 +168,12 @@ export default function AllotmentsPage() {
     setPayrollFormData({
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear(),
-      basicSalary: employee.salary || 0,
-      allowances: 0,
+      basicSalary: employee.basicSalary || (employee.salary ? Math.round(employee.salary / 12) : 0),
+      hra: employee.hra || 0,
+      specialAllowance: employee.specialAllowance || 0,
+      travelAllowance: employee.travelAllowance || 0,
       deductions: 0,
       pf: 0,
-      esic: 0,
       tds: 0,
     });
     setPayrollMetrics(null);
@@ -187,13 +194,24 @@ export default function AllotmentsPage() {
         month,
         year,
         basicSalary: data.basicSalary,
+        hra: data.hra,
+        specialAllowance: data.specialAllowance,
+        travelAllowance: data.travelAllowance,
         deductions: data.deductions,
+        absentDays: data.absentDays || 0,
+        leaveDeduction: data.leaveDeduction || 0,
+        idleDeduction: data.idleDeduction || 0,
         pf: data.pf,
+        tds: data.tds,
       }));
 
       if (data.metrics) {
         setPayrollMetrics(data.metrics);
       }
+
+      // Also update leave balance for the selected month/year
+      const balance = await leaveService.getLeaveBalance(employeeId, month, year);
+      setEmployeeLeaveBalance(balance);
     } catch (error) {
       console.error('Failed to calculate payroll:', error);
     } finally {
@@ -338,41 +356,34 @@ export default function AllotmentsPage() {
                         <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">Leave Balance (Current Year)</p>
+                        <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">Accrued Leave Balance (Up to Selected Month)</p>
                         <div className="flex gap-4 mt-1 text-sm text-slate-600 dark:text-slate-300">
                           <span>Total: <span className="font-semibold">{employeeLeaveBalance.total}</span></span>
                           <span>Used: <span className="font-semibold text-red-500">{employeeLeaveBalance.used}</span></span>
-                          <span>Remaining: <span className="font-semibold text-green-500">{employeeLeaveBalance.remaining}</span></span>
+                          <span>Remaining: <span className={`font-semibold ${employeeLeaveBalance.remaining < 0 ? 'text-red-500' : 'text-green-500'}`}>{employeeLeaveBalance.remaining}</span></span>
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Dynamic Metrics Display */}
+                  )}                  {/* Automated Deductions Preview */}
                   {payrollMetrics && (
-                    <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-6">
-                      <div className="p-2 bg-indigo-100 dark:bg-indigo-800/50 rounded-lg mt-1">
-                        <AlertCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Automated Deductions Preview</h3>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-indigo-800 dark:text-indigo-200 font-bold mb-2">Automated Deductions Preview</p>
-                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-indigo-700 dark:text-indigo-300">
-                          <div className="flex justify-between">
-                            <span>Absent Days:</span>
-                            <span className="font-semibold">{payrollMetrics.absentDays}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Absent Ded.:</span>
-                            <span className="font-semibold text-red-600 dark:text-red-400">₹{payrollMetrics.absentDeduction}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Idle Hours:</span>
-                            <span className="font-semibold">{payrollMetrics.idleHours}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Idle Ded.:</span>
-                            <span className="font-semibold text-red-600 dark:text-red-400">₹{payrollMetrics.idleDeduction}</span>
-                          </div>
+                      <div className="grid grid-cols-2 gap-y-2 text-xs">
+                        <div className="text-slate-600 dark:text-slate-400">Absent Days:</div>
+                        <div className="text-right font-medium text-slate-900 dark:text-white">{payrollMetrics.absentDays || 0} days</div>
+                        
+                        <div className="text-slate-600 dark:text-slate-400">Unpaid Leaves (LOP):</div>
+                        <div className="text-right font-medium text-red-500">{payrollMetrics.lopDays || 0} days</div>
+
+                        <div className="text-slate-600 dark:text-slate-400">Idle Time:</div>
+                        <div className="text-right font-medium text-slate-900 dark:text-white">{payrollMetrics.idleHours || 0} hrs</div>
+                        
+                        <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-700 mt-2 flex justify-between items-center italic">
+                          <span className="text-slate-500">Total Calculated Deduction:</span>
+                          <span className="text-sm font-bold text-red-600 dark:text-red-400">₹{payrollFormData.deductions.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -436,90 +447,147 @@ export default function AllotmentsPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Basic Salary <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={payrollFormData.basicSalary}
-                        onChange={(e) => setPayrollFormData({ ...payrollFormData, basicSalary: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
+                    <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Earnings</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Basic Salary <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.basicSalary}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, basicSalary: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              required
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Allowances
-                      </label>
-                      <input
-                        type="number"
-                        value={payrollFormData.allowances}
-                        onChange={(e) => setPayrollFormData({ ...payrollFormData, allowances: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            HRA
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.hra}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, hra: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Deductions
-                      </label>
-                      <input
-                        type="number"
-                        value={payrollFormData.deductions}
-                        onChange={(e) => setPayrollFormData({ ...payrollFormData, deductions: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Special Allowance
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.specialAllowance}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, specialAllowance: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          PF
-                        </label>
-                        <input
-                          type="number"
-                          value={payrollFormData.pf}
-                          onChange={(e) => setPayrollFormData({ ...payrollFormData, pf: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          min="0"
-                          step="0.01"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Travel Allowance
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.travelAllowance}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, travelAllowance: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
                       </div>
+                    </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          ESIC
-                        </label>
-                        <input
-                          type="number"
-                          value={payrollFormData.esic}
-                          onChange={(e) => setPayrollFormData({ ...payrollFormData, esic: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
+                    <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Deductions</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            PF (Provident Fund)
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.pf}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, pf: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          TDS
-                        </label>
-                        <input
-                          type="number"
-                          value={payrollFormData.tds}
-                          onChange={(e) => setPayrollFormData({ ...payrollFormData, tds: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          min="0"
-                          step="0.01"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            TDS
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.tds}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, tds: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Other Deductions
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-400 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payrollFormData.deductions}
+                              onChange={(e) => setPayrollFormData({ ...payrollFormData, deductions: parseFloat(e.target.value) || 0 })}
+                              className="block w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -529,10 +597,11 @@ export default function AllotmentsPage() {
                         <span className="text-xl font-bold text-slate-900 dark:text-white">
                           ₹{(
                             payrollFormData.basicSalary +
-                            payrollFormData.allowances -
+                            payrollFormData.hra +
+                            payrollFormData.specialAllowance +
+                            payrollFormData.travelAllowance -
                             payrollFormData.deductions -
                             payrollFormData.pf -
-                            payrollFormData.esic -
                             payrollFormData.tds
                           ).toFixed(2)}
                         </span>
@@ -606,7 +675,7 @@ export default function AllotmentsPage() {
                   {employee.salary && (
                     <div className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                       <DollarSign className="w-4 h-4 inline mr-1" />
-                      Current Salary: ₹{employee.salary.toLocaleString()}
+                      Monthly Salary: ₹{Math.round(employee.salary / 12).toLocaleString()}
                     </div>
                   )}
 

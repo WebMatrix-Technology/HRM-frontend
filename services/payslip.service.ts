@@ -47,16 +47,39 @@ export const payslipService = {
         // Earnings & Deductions Table
         y = y + lineHeight * 4 + 15;
 
+        // Prepare deductions rows
+        const deductionRows = [];
+        if (payroll.leaveDeduction && payroll.leaveDeduction > 0) {
+            deductionRows.push(['Leave Deduction (LOP)', formatCurrency(payroll.leaveDeduction)]);
+        }
+        if (payroll.absentDeduction && (payroll.absentDeduction as any) > 0) {
+           deductionRows.push(['Absent Deduction', formatCurrency(payroll.absentDeduction as any)]);
+        }
+        if (payroll.idleDeduction && payroll.idleDeduction > 0) {
+            deductionRows.push(['Idle Time Deduction', formatCurrency(payroll.idleDeduction)]);
+        }
+
+        // Fill remaining rows if needed or add a generic "Other" if deductions > sum of specific ones
+        const specificSum = (payroll.leaveDeduction || 0) + (payroll.idleDeduction || 0) + ((payroll.absentDeduction as any) || 0);
+        const otherDeduction = Math.max(0, payroll.deductions - specificSum);
+        if (otherDeduction > 0.01) {
+            deductionRows.push(['Other Deductions', formatCurrency(otherDeduction)]);
+        }
+
+        // Static rows for PF/TDS
+        const pfRow = ['PF', formatCurrency(payroll.pf || 0)];
+        const tdsRow = ['TDS', formatCurrency(payroll.tds || 0)];
+
         autoTable(doc, {
             startY: y,
             head: [['Earnings', 'Amount', 'Deductions', 'Amount']],
             body: [
-                ['Basic Salary', formatCurrency(payroll.basicSalary), 'PF', formatCurrency(payroll.pf || 0)],
-                ['Allowances', formatCurrency(payroll.allowances), 'ESIC', formatCurrency(payroll.esic || 0)],
-                ['', '', 'TDS', formatCurrency(payroll.tds || 0)],
-                ['', '', 'Other Deductions', formatCurrency(payroll.deductions)],
-                ['', '', '', ''], // Spacer
-                ['Total Earnings', formatCurrency(payroll.basicSalary + payroll.allowances), 'Total Deductions', formatCurrency((payroll.pf || 0) + (payroll.esic || 0) + (payroll.tds || 0) + payroll.deductions)],
+                ['Basic Salary', formatCurrency(payroll.basicSalary), pfRow[0], pfRow[1]],
+                ['HRA', formatCurrency(payroll.hra || 0), tdsRow[0], tdsRow[1]],
+                ['Special Allowance', formatCurrency(payroll.specialAllowance || 0), deductionRows[0]?.[0] || '', deductionRows[0]?.[1] || ''],
+                ['Travel Allowance', formatCurrency(payroll.travelAllowance || 0), deductionRows[1]?.[0] || '', deductionRows[1]?.[1] || ''],
+                ['', '', deductionRows[2]?.[0] || '', deductionRows[2]?.[1] || ''],
+                ['Total Earnings', formatCurrency(payroll.basicSalary + (payroll.hra || 0) + (payroll.specialAllowance || 0) + (payroll.travelAllowance || 0)), 'Total Deductions', formatCurrency((payroll.pf || 0) + (payroll.tds || 0) + payroll.deductions)],
             ],
             theme: 'grid',
             headStyles: { fillColor: [41, 128, 185] },

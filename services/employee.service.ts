@@ -30,6 +30,7 @@ export interface Employee {
   travelAllowance?: number;
   pf?: number;
   tds?: number;
+  monthlyLeaveAllotment?: number;
   isActive: boolean;
   avatar?: string;
   user?: {
@@ -71,6 +72,7 @@ export interface CreateEmployeeData {
   travelAllowance?: number;
   pf?: number;
   tds?: number;
+  monthlyLeaveAllotment?: number;
   role?: string;
 }
 
@@ -102,6 +104,7 @@ export interface UpdateEmployeeData {
   travelAllowance?: number;
   pf?: number;
   tds?: number;
+  monthlyLeaveAllotment?: number;
   isActive?: boolean;
 }
 

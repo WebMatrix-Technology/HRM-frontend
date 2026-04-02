@@ -69,9 +69,13 @@ export const leaveService = {
     return response.data.data;
   },
 
-  getLeaveBalance: async (employeeId?: string): Promise<LeaveBalance> => {
-    const params = employeeId ? `?employeeId=${employeeId}` : '';
-    const response = await api.get(`/leave/balance${params}`);
+  getLeaveBalance: async (employeeId?: string, month?: number, year?: number): Promise<LeaveBalance> => {
+    const params = new URLSearchParams();
+    if (employeeId) params.set('employeeId', employeeId);
+    if (month) params.set('month', month.toString());
+    if (year) params.set('year', year.toString());
+    
+    const response = await api.get(`/leave/balance?${params.toString()}`);
     return response.data.data;
   },
 };

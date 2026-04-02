@@ -20,6 +20,14 @@ export interface Employee {
   firstName: string;
   lastName: string;
   phone?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  department?: string;
+  position?: string;
   personalEmail?: string;
   bankName?: string;
   bankAccountNumber?: string;
@@ -28,8 +36,16 @@ export interface Employee {
   skills?: string;
   joiningDate?: string;
   nameTitle?: string;
-  department?: string;
-  position?: string;
+  employmentType?: string;
+  salary?: number;
+  basicSalary?: number;
+  hra?: number;
+  specialAllowance?: number;
+  travelAllowance?: number;
+  pf?: number;
+  tds?: number;
+  monthlyLeaveAllotment?: number;
+  isActive: boolean;
   avatar?: string;
 }
 

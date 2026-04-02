@@ -18,6 +18,18 @@ export enum TaskPriority {
     CRITICAL = 'Critical',
 }
 
+export interface TaskComment {
+    _id: string;
+    text: string;
+    authorId: {
+        _id: string;
+        firstName: string;
+        lastName: string;
+        avatar?: string;
+    };
+    createdAt: string;
+}
+
 export interface Task {
     _id: string; // Mongoose ID
     title: string;
@@ -33,6 +45,7 @@ export interface Task {
         avatar?: string;
     } | string;
     tags?: string[];
+    comments?: TaskComment[];
     createdAt: string;
     updatedAt: string;
 }
@@ -100,5 +113,11 @@ export const taskService = {
     // Delete task
     deleteTask: async (id: string): Promise<void> => {
         await api.delete(`/tasks/${id}`);
+    },
+
+    // Add comment to task
+    addComment: async (taskId: string, text: string): Promise<Task> => {
+        const response = await api.post(`/tasks/${taskId}/comments`, { text });
+        return response.data.data;
     },
 };
