@@ -38,6 +38,7 @@ import { employeeService, UpdateEmployeeData, Employee } from '@/services/employ
 import { documentService } from '@/services/document.service';
 import DatePicker from '@/components/ui/DatePicker';
 import { Trash2 } from 'lucide-react';
+import DocumentUploadModal from '@/components/DocumentUploadModal';
 
 export default function ProfilePage() {
   const router = useRouter();

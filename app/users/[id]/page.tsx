@@ -25,6 +25,7 @@ import { Role } from '@/types';
 import { employeeService, Employee } from '@/services/employee.service';
 import { documentService } from '@/services/document.service';
 import { FileText, Download, Trash2 } from 'lucide-react';
+import DocumentUploadModal from '@/components/DocumentUploadModal';
 
 export default function UserDetailPage() {
   const router = useRouter();
@@ -509,52 +510,15 @@ export default function UserDetailPage() {
         </motion.div>
       </motion.div>
 
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Upload Document</h3>
-            <form onSubmit={handleUploadDocument} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={newDocTitle}
-                  onChange={(e) => setNewDocTitle(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  placeholder="e.g. Contract, Resume"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">File</label>
-                <input
-                  type="file"
-                  onChange={(e) => setNewDocFile(e.target.files?.[0] || null)}
-                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {uploading ? 'Uploading...' : 'Upload'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <DocumentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        title={newDocTitle}
+        setTitle={setNewDocTitle}
+        setFile={setNewDocFile}
+        onSubmit={handleUploadDocument}
+        uploading={uploading}
+      />
     </DashboardLayout>
   );
 }
