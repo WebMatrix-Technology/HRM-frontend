@@ -146,6 +146,20 @@ export const projectService = {
     });
     return response.data;
   },
+
+  // Upload project report file
+  uploadReport: async (id: string, file: File, reportText: string): Promise<Project> => {
+    const formData = new FormData();
+    formData.append('reportFile', file);
+    formData.append('reportText', reportText);
+
+    const response = await api.post(`/projects/${id}/report`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  },
 };
 
 

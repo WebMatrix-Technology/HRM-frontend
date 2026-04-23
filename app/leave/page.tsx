@@ -305,6 +305,7 @@ export default function LeavePage() {
                     inputClassName="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                     popoverDirection="down"
                     useRange={true}
+                    minDate={new Date()}
                   />
                 </div>
               </div>

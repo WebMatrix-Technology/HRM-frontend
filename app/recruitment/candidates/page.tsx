@@ -303,6 +303,7 @@ export default function CandidatesPage() {
                                                 onChange={(val) => setInterviewDate(val)}
                                                 includeTime={true}
                                                 placeholder="Select interview date & time"
+                                                min={new Date().toISOString().split('T')[0]}
                                             />
                                         </div>
                                         <div>

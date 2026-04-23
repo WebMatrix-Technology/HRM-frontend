@@ -14,6 +14,8 @@ export interface Employee {
   country?: string;
   department?: string;
   position?: string;
+  bloodGroup?: string;
+  aadhaarNumber?: string;
   personalEmail?: string;
   bankName?: string;
   bankAccountNumber?: string;
@@ -56,6 +58,8 @@ export interface CreateEmployeeData {
   country?: string;
   department?: string;
   position?: string;
+  bloodGroup?: string;
+  aadhaarNumber?: string;
   personalEmail?: string;
   bankName?: string;
   bankAccountNumber?: string;
@@ -88,6 +92,8 @@ export interface UpdateEmployeeData {
   country?: string;
   department?: string;
   position?: string;
+  bloodGroup?: string;
+  aadhaarNumber?: string;
   personalEmail?: string;
   bankName?: string;
   bankAccountNumber?: string;
@@ -143,6 +149,17 @@ export const employeeService = {
   getDepartments: async (): Promise<string[]> => {
     const response = await api.get('/employees/departments');
     return response.data.data;
+  },
+
+  uploadAvatar: async (id: string, file: File): Promise<{ avatar: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post(`/employees/${id}/avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 };
 

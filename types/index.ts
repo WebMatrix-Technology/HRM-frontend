@@ -28,6 +28,8 @@ export interface Employee {
   country?: string;
   department?: string;
   position?: string;
+  bloodGroup?: string;
+  aadhaarNumber?: string;
   personalEmail?: string;
   bankName?: string;
   bankAccountNumber?: string;
@@ -123,6 +125,8 @@ export interface Project {
   };
   members: ProjectMember[];
   tags?: string[];
+  completionReport?: string;
+  completionReportFile?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -139,6 +143,7 @@ export interface CreateProjectData {
   managerId: string;
   memberIds?: string[];
   tags?: string[];
+  completionReport?: string;
 }
 
 export interface UpdateProjectData {
@@ -154,5 +159,6 @@ export interface UpdateProjectData {
   progress?: number;
   tags?: string[];
   memberIds?: string[];
+  completionReport?: string;
 }
 

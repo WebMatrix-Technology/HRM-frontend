@@ -27,6 +27,7 @@ import {
   FileText,
   Download,
   X,
+  Camera,
   Briefcase as PositionIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -34,7 +35,9 @@ import { Role } from '@/types';
 import { payrollService, Payroll } from '@/services/payroll.service';
 import { payslipService } from '@/services/payslip.service';
 import { employeeService, UpdateEmployeeData, Employee } from '@/services/employee.service';
+import { documentService } from '@/services/document.service';
 import DatePicker from '@/components/ui/DatePicker';
+import { Trash2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -58,9 +61,18 @@ export default function ProfilePage() {
   const [payslips, setPayslips] = useState<Payroll[]>([]);
   const [loadingPayslips, setLoadingPayslips] = useState(false);
   
+  // Document State
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState('');
+  const [newDocFile, setNewDocFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   // Profile Edit State
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [updateProfileError, setUpdateProfileError] = useState('');
   const [skillInput, setSkillInput] = useState('');
   const [formData, setFormData] = useState<UpdateEmployeeData & { email?: string; role?: string; employeeIdCode?: string; }>({
@@ -92,6 +104,8 @@ export default function ProfilePage() {
     qualifications: '',
     skills: '',
     joiningDate: '',
+    bloodGroup: '',
+    aadhaarNumber: '',
     isActive: true,
     email: '',
     role: 'EMPLOYEE',
@@ -137,6 +151,8 @@ export default function ProfilePage() {
         qualifications: employee.qualifications || '',
         skills: employee.skills || '',
         joiningDate: joiningDate,
+        bloodGroup: employee.bloodGroup || '',
+        aadhaarNumber: employee.aadhaarNumber || '',
         isActive: employee.isActive ?? true,
         email: user?.email || '',
         role: user?.role || 'EMPLOYEE',
@@ -161,6 +177,24 @@ export default function ProfilePage() {
     };
     loadPayslips();
   }, [employee]);
+
+  useEffect(() => {
+    if (employee?.id) {
+      loadDocuments(employee.id);
+    }
+  }, [employee]);
+
+  const loadDocuments = async (empId: string) => {
+    try {
+      setLoadingDocs(true);
+      const docs = await documentService.getDocuments(empId);
+      setDocuments(docs || []);
+    } catch (error) {
+      console.error('Failed to load documents', error);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -254,6 +288,8 @@ export default function ProfilePage() {
         qualifications: formData.qualifications || undefined,
         skills: formData.skills || undefined,
         joiningDate: formData.joiningDate || undefined,
+        bloodGroup: formData.bloodGroup || undefined,
+        aadhaarNumber: formData.aadhaarNumber || undefined,
         isActive: formData.isActive,
       };
 
@@ -271,6 +307,24 @@ export default function ProfilePage() {
       setIsUpdatingProfile(false);
     }
   };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length || !employee?.id) return;
+    const file = e.target.files[0];
+    
+    setIsUploadingAvatar(true);
+    try {
+      await employeeService.uploadAvatar(employee.id, file);
+      await fetchUser(); // Reload user data
+    } catch (error) {
+      console.error('Failed to upload avatar', error);
+      alert('Failed to upload profile image.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '');
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -321,6 +375,36 @@ export default function ProfilePage() {
       setPasswordError(err.response?.data?.error || err.message || 'Failed to change password. Please try again.');
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleUploadDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!employee?.id || !newDocFile) return;
+
+    try {
+      setUploading(true);
+      await documentService.uploadDocument(employee.id, newDocTitle, newDocFile);
+      setShowUploadModal(false);
+      setNewDocTitle('');
+      setNewDocFile(null);
+      loadDocuments(employee.id);
+    } catch (error) {
+      console.error('Failed to upload', error);
+      alert('Failed to upload document.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    if (!confirm('Delete this document?')) return;
+    try {
+      await documentService.deleteDocument(id);
+      if (employee?.id) loadDocuments(employee.id);
+    } catch (error) {
+      console.error('Failed to delete', error);
+      alert('Failed to delete document.');
     }
   };
 
@@ -453,10 +537,28 @@ export default function ProfilePage() {
           >
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg">
-                  {employee
-                    ? `${employee.firstName[0]}${employee.lastName[0]}`
-                    : user.email[0].toUpperCase()}
+                <div className="relative mb-4 group inline-block">
+                  <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg overflow-hidden">
+                    {employee?.avatar ? (
+                      <img src={`${API_URL}${employee.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      employee
+                        ? `${employee.firstName[0]}${employee.lastName[0]}`
+                        : user.email[0].toUpperCase()
+                    )}
+                  </div>
+                  {/* Upload Overlay */}
+                  <label className="absolute inset-0 bg-black/50 text-white rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <>
+                        <Camera className="w-6 h-6 mb-1" />
+                        <span className="text-[10px]">Upload</span>
+                        <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} disabled={isUploadingAvatar} />
+                      </>
+                    )}
+                  </label>
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                   {employee
@@ -610,6 +712,36 @@ export default function ProfilePage() {
                           className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-blue-500 transition-all text-slate-900 dark:text-white"
                           placeholder="personal@email.com"
                           value={formData.personalEmail}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Blood Group</label>
+                        <select
+                          name="bloodGroup"
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-blue-500 transition-all text-slate-900 dark:text-white"
+                          value={formData.bloodGroup || ''}
+                          onChange={handleChange}
+                        >
+                          <option value="">Select</option>
+                          <option value="A+">A+</option>
+                          <option value="A-">A-</option>
+                          <option value="B+">B+</option>
+                          <option value="B-">B-</option>
+                          <option value="AB+">AB+</option>
+                          <option value="AB-">AB-</option>
+                          <option value="O+">O+</option>
+                          <option value="O-">O-</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Aadhaar Number</label>
+                        <input
+                          type="text"
+                          name="aadhaarNumber"
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-blue-500 transition-all text-slate-900 dark:text-white"
+                          placeholder="1234 5678 9012"
+                          value={formData.aadhaarNumber || ''}
                           onChange={handleChange}
                         />
                       </div>
@@ -1201,6 +1333,71 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Documents Information */}
+            {employee && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3 mb-4">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    My Documents
+                  </h3>
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Upload
+                  </button>
+                </div>
+
+                {loadingDocs ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  </div>
+                ) : documents.length === 0 ? (
+                  <div className="text-center py-6 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No documents uploaded.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {documents.map((doc) => (
+                      <div key={doc._id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{doc.title}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {new Date(doc.createdAt).toLocaleDateString()} • {Math.round(doc.size / 1024)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={documentService.getDownloadUrl(doc._id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 rounded-lg transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-5 h-5" />
+                          </a>
+                          <button
+                            onClick={() => handleDeleteDocument(doc._id)}
+                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:hover:text-red-400 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* No Employee Record */}
             {!employee && (
               <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
@@ -1218,7 +1415,16 @@ export default function ProfilePage() {
           </motion.div>
         </div>
       </motion.div>
+
+      <DocumentUploadModal 
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        title={newDocTitle}
+        setTitle={setNewDocTitle}
+        setFile={setNewDocFile}
+        onSubmit={handleUploadDocument}
+        uploading={uploading}
+      />
     </DashboardLayout>
   );
 }
-

@@ -20,8 +20,16 @@ import {
   UserMinus,
   Tag,
   Building2,
-  Briefcase
+  Briefcase,
+  FileText,
+  X,
+  Loader2,
+  Paperclip,
+  Upload,
+  DownloadCloud,
+  FileCheck
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authStore';
 import { Role, Project, ProjectStatus, ProjectPriority } from '@/types';
@@ -40,6 +48,10 @@ export default function ProjectDetailPage() {
   const [selectedNewMembers, setSelectedNewMembers] = useState<string[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [addingMembers, setAddingMembers] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   const projectId = params.id as string;
   const isAdmin = currentUser?.role === Role.ADMIN;
@@ -137,6 +149,37 @@ export default function ProjectDetailPage() {
     } catch (err: any) {
       console.error('Failed to remove member:', err);
       alert(err.response?.data?.error || 'Failed to remove member');
+    }
+  };
+
+  const handleOpenReportModal = () => {
+    if (!project) return;
+    setReportText('');
+    setSelectedFile(null);
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!project || !reportText.trim() || !selectedFile) {
+      alert('Please provide both report text and a file.');
+      return;
+    }
+
+    try {
+      setIsSubmittingReport(true);
+      const updatedProject = await projectService.uploadReport(
+        projectId, 
+        selectedFile, 
+        reportText
+      );
+      
+      setProject(updatedProject);
+      setShowReportModal(false);
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+      alert('Failed to submit report. Please try again.');
+    } finally {
+      setIsSubmittingReport(false);
     }
   };
 
@@ -308,6 +351,31 @@ export default function ProjectDetailPage() {
                 Delete
               </motion.button>
             )}
+            {project.completionReportFile && (
+              <motion.button
+                onClick={() => {
+                  const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${project.completionReportFile}`;
+                  window.open(url, '_blank');
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-200 transition-colors font-medium border border-emerald-200 dark:border-emerald-800/50"
+              >
+                <DownloadCloud className="w-4 h-4" />
+                Download Report
+              </motion.button>
+            )}
+            {project.progress === 100 && (project.status !== ProjectStatus.COMPLETED || !project.completionReport) && (
+              <motion.button
+                onClick={handleOpenReportModal}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
+              >
+                <FileText className="w-4 h-4" />
+                Submit Project Report
+              </motion.button>
+            )}
           </div>
         </motion.div>
 
@@ -334,6 +402,21 @@ export default function ProjectDetailPage() {
                     </span>
                   )}
                 </div>
+
+                {project.completionReport && (
+                  <div className="mb-8 p-6 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                      <FileCheck className="w-24 h-24 text-emerald-500" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500" />
+                      Project Completion Report
+                    </h3>
+                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed relative z-10">
+                      {project.completionReport}
+                    </p>
+                  </div>
+                )}
 
                 {project.description && (
                   <div className="mb-6">
@@ -610,6 +693,130 @@ export default function ProjectDetailPage() {
           </motion.div>
         </div>
       )}
+      {/* Project Report Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                    <FileText className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Submit Project Report</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Completion report for {project?.name}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowReportModal(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Project Outcome / Summary
+                  </label>
+                  <textarea
+                    value={reportText}
+                    onChange={(e) => setReportText(e.target.value)}
+                    placeholder="Describe the overall outcome of the project, key achievements, and any final notes..."
+                    className="w-full h-32 px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Upload Report Document (PDF, DOCX, Excel)
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className={`
+                      w-full p-6 border-2 border-dashed rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-2
+                      ${selectedFile 
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' 
+                        : 'border-slate-300 dark:border-slate-600 group-hover:border-emerald-400 dark:group-hover:border-emerald-500/50 bg-slate-50 dark:bg-slate-800/50'
+                      }
+                    `}>
+                      {selectedFile ? (
+                        <>
+                          <Paperclip className="w-8 h-8 text-emerald-500 animate-bounce-subtle" />
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[250px]">
+                              {selectedFile.name}
+                            </p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready to upload
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6 text-slate-400 group-hover:text-emerald-500" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                              Click to upload or drag and drop
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              PDF, DOCX, or Excel (max 10MB)
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                  Submitting this report will mark the project as <strong>COMPLETED</strong>.
+                </p>
+              </div>
+
+              <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex gap-3">
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitReport}
+                  disabled={!reportText.trim() || !selectedFile || isSubmittingReport}
+                  className="flex-[2] px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/25 enabled:hover:shadow-emerald-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSubmittingReport ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Uploading Report...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Complete Project
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

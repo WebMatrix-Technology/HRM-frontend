@@ -211,6 +211,8 @@ export default function AddEmployeePage() {
         qualifications: formData.qualifications || undefined,
         skills: formData.skills || undefined,
         joiningDate: formData.joiningDate || undefined,
+        bloodGroup: formData.bloodGroup || undefined,
+        aadhaarNumber: formData.aadhaarNumber || undefined,
       };
 
       await employeeService.createEmployee(submitData);
@@ -510,6 +512,49 @@ export default function AddEmployeePage() {
                       className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       placeholder="personal@email.com"
                       value={formData.personalEmail || ''}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="bloodGroup" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Blood Group
+                  </label>
+                  <select
+                    id="bloodGroup"
+                    name="bloodGroup"
+                    className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    value={formData.bloodGroup || ''}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="aadhaarNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Aadhaar Number
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Hash className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input
+                      id="aadhaarNumber"
+                      name="aadhaarNumber"
+                      type="text"
+                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="1234 5678 9012"
+                      value={formData.aadhaarNumber || ''}
                       onChange={handleChange}
                     />
                   </div>
